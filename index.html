@@ -855,58 +855,81 @@ function confirmarLimpiar(){
   gastos=[];saveGastos();renderHistorial();renderInicio();
 }
 
+function modoActual(){
+  const a=new Date(),anio=a.getFullYear(),mes=a.getMonth(),dia=a.getDate();
+  if(anio<2026||anio===2026&&mes<3) return 'plan';
+  if(anio===2026&&mes===3&&dia<25) return 'supervivencia';
+  return 'plan';
+}
 function renderInicio(){
+  const modo=modoActual();
   const totalMes=gastos.reduce((a,g)=>a+g.monto,0);
   const hoy=todayStr();
   const totalHoy=gastos.filter(g=>g.fecha===hoy).reduce((a,g)=>a+g.monto,0);
-  const presup=D.gastos;
-  const disp=Math.max(0,presup-totalMes);
-  const pct=Math.min(100,Math.round(totalMes/presup*100));
-  const limiteDia=Math.round(presup/30);
-
-  document.getElementById('hero-total').textContent=fmt(totalMes);
-  document.getElementById('hero-sub').textContent=`Presupuesto: ${fmt(presup)} · Limite/dia: S/ ${limiteDia}`;
-  document.getElementById('hero-fill').style.width=pct+'%';
-  document.getElementById('hero-fill').style.background=pct>=100?'var(--red)':pct>=80?'var(--amber)':'var(--green)';
-  document.getElementById('m-hoy').textContent=fmt(totalHoy);
-  document.getElementById('m-hoy').className='m-val '+(totalHoy>limiteDia?'r':'b');
-  document.getElementById('m-disp').textContent=fmt(disp);
-  document.getElementById('m-disp').className='m-val '+(disp<200?'r':disp<500?'a':'g');
-
-  let alertsHtml='';
-  if(totalMes>presup){alertsHtml+=`<div class="alert alert-danger"><div style="font-size:16px">⚠</div><div class="alert-text" style="color:var(--red)">Superaste el presupuesto mensual de ${fmt(presup)}.</div></div>`;}
-  else if(totalHoy>limiteDia){alertsHtml+=`<div class="alert alert-warn"><div style="font-size:16px">⚡</div><div class="alert-text" style="color:var(--amber)">Superaste el limite diario de S/${limiteDia}.</div></div>`;}
-  else if(pct<30&&gastos.length>0){alertsHtml+=`<div class="alert alert-ok"><div style="font-size:16px">✓</div><div class="alert-text" style="color:var(--green)">Vas muy bien este mes.</div></div>`;}
-  document.getElementById('alertas-box').innerHTML=alertsHtml;
-
-  const por={};
-  gastos.forEach(g=>{por[g.cat]=(por[g.cat]||0)+g.monto});
-  const cats=Object.keys(PRESUP).filter(c=>(por[c]||0)>0);
-  let html=cats.length?cats.map(cat=>{
-    const g=por[cat]||0,p=PRESUP[cat];
-    const pct2=Math.min(100,Math.round(g/p*100));
-    const cls=pct2>=100?'pdanger':pct2>=80?'pwarn':'pok';
-    return`<div class="prog-item">
-      <div class="prog-top"><span class="prog-name">${EM[cat]} ${NOM[cat]}</span><span class="prog-amounts">${fmt(g)} / ${fmt(p)}</span></div>
-      <div class="prog-bar"><div class="prog-fill ${cls}" style="width:${pct2}%"></div></div>
-    </div>`;}).join(''):'<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Registra gastos para ver el avance</div></div>';
-  document.getElementById('cats-home').innerHTML=html;
-
-  const totalMin=D.io.minimo+D.oh.minimo+D.ibk.minimo+D.prest.minimo;
-  document.getElementById('recordatorio-minimos').innerHTML=`
-    <div class="row"><span class="row-label">IO Tarjeta (+ extra)</span><span class="row-val" style="color:var(--blue)">S/ ${D.io.minimo}</span></div>
-    <div class="row"><span class="row-label">OH Tarjeta</span><span class="row-val">S/ ${D.oh.minimo}</span></div>
-    <div class="row"><span class="row-label">IBK Acces</span><span class="row-val">S/ ${D.ibk.minimo}</span></div>
-    <div class="row"><span class="row-label">Prestamo Personal</span><span class="row-val">S/ ${D.prest.minimo}</span></div>
-    <div class="row" style="border:none"><span class="row-label" style="color:var(--green);font-weight:600">Extra a IO Tarjeta</span><span class="row-val" style="color:var(--green)">+ S/ ${Math.max(0,D.ingreso-D.gastos-totalMin)}</span></div>`;
-
+  const ahora=new Date();
+  const cobro=new Date(ahora.getFullYear(),ahora.getMonth(),25);
+  if(cobro<=ahora)cobro.setMonth(cobro.getMonth()+1);
+  const dias=Math.ceil((cobro-ahora)/(864e5));
+  if(modo==='supervivencia'){
+    const saldo=300,limD=Math.max(1,Math.round(saldo/dias)),dispS=Math.max(0,saldo-totalMes),pctS=Math.min(100,Math.round(totalMes/saldo*100));
+    document.getElementById('hero-total').textContent=fmt(totalMes);
+    document.getElementById('hero-sub').textContent='Modo supervivencia \xb7 Saldo S/'+saldo+' \xb7 Cobro en '+dias+' dias';
+    document.getElementById('hero-fill').style.width=pctS+'%';
+    document.getElementById('hero-fill').style.background=pctS>=80?'var(--red)':pctS>=50?'var(--amber)':'var(--blue)';
+    document.getElementById('m-hoy').textContent=fmt(totalHoy);
+    document.getElementById('m-hoy').className='m-val '+(totalHoy>limD?'r':'b');
+    document.getElementById('m-disp').textContent=fmt(dispS);
+    document.getElementById('m-disp').className='m-val '+(dispS<80?'r':dispS<150?'a':'b');
+    let ah='<div class="alert" style="background:var(--blue-dim);border-color:rgba(91,143,255,.25);margin-bottom:12px"><div style="font-size:16px">&#128737;</div><div class="alert-text" style="color:var(--blue)"><strong>Modo supervivencia hasta el 25 de Abril</strong><br>Saldo: S/'+saldo+' | '+dias+' dias restantes | Limite diario: <strong>S/ '+limD+'</strong><br>Solo alimentacion y transporte. Nada mas.</div></div>';
+    if(dispS<60)ah+='<div class="alert alert-danger"><div style="font-size:16px">&#9888;</div><div class="alert-text" style="color:var(--red)">Saldo critico: S/'+dispS.toFixed(0)+' restantes. Extremo cuidado.</div></div>';
+    else if(totalHoy>limD)ah+='<div class="alert alert-warn"><div style="font-size:16px">&#9889;</div><div class="alert-text" style="color:var(--amber)">Superaste el limite diario de S/'+limD+'. Ajusta manana.</div></div>';
+    document.getElementById('alertas-box').innerHTML=ah;
+    const por={};
+    gastos.filter(g=>g.fecha>='2026-04-01').forEach(g=>{por[g.cat]=(por[g.cat]||0)+g.monto;});
+    const cs=Object.keys(por).sort((a,b)=>por[b]-por[a]);
+    document.getElementById('cats-home').innerHTML=cs.length?cs.map(cat=>{
+      const g=por[cat],p2=Math.min(100,Math.round(g/saldo*100));
+      return '<div class="prog-item"><div class="prog-top"><span class="prog-name">'+EM[cat]+' '+NOM[cat]+'</span><span class="prog-amounts">'+fmt(g)+' de S/'+saldo+'</span></div><div class="prog-bar"><div class="prog-fill pazul" style="width:'+p2+'%"></div></div></div>';
+    }).join(''):'<div class="empty"><div class="empty-icon">&#128737;</div><div class="empty-text">Modo supervivencia activo.<br>Solo lo indispensable hasta el 25.</div></div>';
+    document.getElementById('recordatorio-minimos').innerHTML=
+      '<div class="row"><span class="row-label" style="color:var(--blue);font-weight:600">Saldo disponible</span><span class="row-val" style="color:var(--blue)">S/ '+saldo+'</span></div>'+
+      '<div class="row"><span class="row-label">Dias hasta el 25 de Abril</span><span class="row-val">'+dias+' dias</span></div>'+
+      '<div class="row"><span class="row-label">Limite diario sugerido</span><span class="row-val" style="color:var(--amber)">S/ '+limD+'</span></div>'+
+      '<div class="row" style="border:none"><span class="row-label" style="color:var(--green)">El plan arranca el 25 de Abril</span><span class="row-val" style="color:var(--green)">&#128197;</span></div>';
+  } else {
+    const presup=D.gastos,disp=Math.max(0,presup-totalMes),pct=Math.min(100,Math.round(totalMes/presup*100)),limD=Math.round(presup/30);
+    document.getElementById('hero-total').textContent=fmt(totalMes);
+    document.getElementById('hero-sub').textContent='Presupuesto: '+fmt(presup)+' \xb7 Limite/dia: S/ '+limD;
+    document.getElementById('hero-fill').style.width=pct+'%';
+    document.getElementById('hero-fill').style.background=pct>=100?'var(--red)':pct>=80?'var(--amber)':'var(--green)';
+    document.getElementById('m-hoy').textContent=fmt(totalHoy);
+    document.getElementById('m-hoy').className='m-val '+(totalHoy>limD?'r':'b');
+    document.getElementById('m-disp').textContent=fmt(disp);
+    document.getElementById('m-disp').className='m-val '+(disp<200?'r':disp<500?'a':'g');
+    let ah='';
+    if(totalMes>presup)ah='<div class="alert alert-danger"><div style="font-size:16px">&#9888;</div><div class="alert-text" style="color:var(--red)">Superaste el presupuesto mensual de '+fmt(presup)+'.</div></div>';
+    else if(totalHoy>limD)ah='<div class="alert alert-warn"><div style="font-size:16px">&#9889;</div><div class="alert-text" style="color:var(--amber)">Superaste el limite diario de S/'+limD+'.</div></div>';
+    else if(pct<30&&gastos.length>0)ah='<div class="alert alert-ok"><div style="font-size:16px">&#10003;</div><div class="alert-text" style="color:var(--green)">Vas muy bien este mes.</div></div>';
+    document.getElementById('alertas-box').innerHTML=ah;
+    const por={};
+    gastos.forEach(g=>{por[g.cat]=(por[g.cat]||0)+g.monto;});
+    const cats=Object.keys(PRESUP).filter(c=>(por[c]||0)>0);
+    document.getElementById('cats-home').innerHTML=cats.length?cats.map(cat=>{
+      const g=por[cat]||0,p=PRESUP[cat],pct2=Math.min(100,Math.round(g/p*100)),cls=pct2>=100?'pdanger':pct2>=80?'pwarn':'pok';
+      return '<div class="prog-item"><div class="prog-top"><span class="prog-name">'+EM[cat]+' '+NOM[cat]+'</span><span class="prog-amounts">'+fmt(g)+' / '+fmt(p)+'</span></div><div class="prog-bar"><div class="prog-fill '+cls+'" style="width:'+pct2+'%"></div></div></div>';
+    }).join(''):'<div class="empty"><div class="empty-icon">&#128202;</div><div class="empty-text">Registra gastos para ver el avance</div></div>';
+    const totalMin=D.io.minimo+D.oh.minimo+D.ibk.minimo+D.prest.minimo;
+    document.getElementById('recordatorio-minimos').innerHTML=
+      '<div class="row"><span class="row-label">IO Tarjeta (+ extra)</span><span class="row-val" style="color:var(--blue)">S/ '+D.io.minimo+'</span></div>'+
+      '<div class="row"><span class="row-label">OH Tarjeta</span><span class="row-val">S/ '+D.oh.minimo+'</span></div>'+
+      '<div class="row"><span class="row-label">IBK Acces</span><span class="row-val">S/ '+D.ibk.minimo+'</span></div>'+
+      '<div class="row"><span class="row-label">Prestamo Personal</span><span class="row-val">S/ '+D.prest.minimo+'</span></div>'+
+      '<div class="row" style="border:none"><span class="row-label" style="color:var(--green);font-weight:600">Extra a IO Tarjeta</span><span class="row-val" style="color:var(--green)">+ S/ '+Math.max(0,D.ingreso-D.gastos-totalMin)+'</span></div>';
+  }
   const ul=gastos.slice(0,5);
-  document.getElementById('ultimos-home').innerHTML=ul.length?ul.map(g=>`
-    <div class="gasto-row">
-      <div class="gasto-icon" style="background:${BGCAT[g.cat]}">${EM[g.cat]}</div>
-      <div class="gasto-info"><div class="gasto-desc">${g.desc}</div><div class="gasto-meta">${NOM[g.cat]} · ${g.fecha}</div></div>
-      <span class="gasto-amount">${fmt(g.monto)}</span>
-    </div>`).join(''):'<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Aun no hay gastos.<br>Toca "+ Gasto" para empezar.</div></div>';
+  document.getElementById('ultimos-home').innerHTML=ul.length?ul.map(g=>
+    '<div class="gasto-row"><div class="gasto-icon" style="background:'+BGCAT[g.cat]+'">'+EM[g.cat]+'</div><div class="gasto-info"><div class="gasto-desc">'+g.desc+'</div><div class="gasto-meta">'+NOM[g.cat]+' \xb7 '+g.fecha+'</div></div><span class="gasto-amount">'+fmt(g.monto)+'</span></div>'
+  ).join(''):'<div class="empty"><div class="empty-icon">&#128184;</div><div class="empty-text">Aun no hay gastos. Toca &quot;+ Gasto&quot;.</div></div>';
 }
 
 function renderHistorial(){
