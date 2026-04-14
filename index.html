@@ -139,6 +139,16 @@ select option{background:var(--bg3)}
 .plan-deuda-saldo{font-family:'DM Mono',monospace;font-weight:500}
 .plan-total{display:flex;justify-content:space-between;font-size:14px;font-weight:600;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
 .liq-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;margin-left:8px;background:var(--green-dim);color:var(--green)}
+.mes-header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:12px 12px 0 0;cursor:pointer;user-select:none}
+.mes-body{padding:0 14px 12px;display:none}
+.mes-body.open{display:block}
+.pago-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.pago-row:last-child{border-bottom:none}
+.pago-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ahorro-fase{background:var(--purple-dim);border:1px solid rgba(167,139,250,.25);border-radius:16px;padding:18px;margin-bottom:10px}
+.ahorro-meta-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(167,139,250,.15)}
+.ahorro-meta-row:last-child{border-bottom:none}
+.fase-libre{background:var(--green-dim);border:1px solid rgba(34,214,142,.2);border-radius:16px;padding:16px;margin-bottom:10px}
 .section-sep{display:flex;align-items:center;gap:10px;margin:16px 0}
 .section-sep span{font-size:11px;color:var(--muted);white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 .section-sep::before,.section-sep::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -381,30 +391,29 @@ select option{background:var(--bg3)}
 
 <!-- PROYECCION -->
 <div id="s-plan" class="screen">
+
   <div class="hero" style="margin-bottom:12px">
-    <div class="hero-label">Quedas libre de deudas en</div>
-    <div class="hero-amount" id="proj-fecha" style="font-size:26px;color:var(--accent)">calculando...</div>
+    <div class="hero-label">Libre de deudas en</div>
+    <div class="hero-amount" id="proj-fecha" style="font-size:28px;color:var(--accent)">calculando...</div>
     <div class="hero-sub" id="proj-sub">basado en tus datos actuales</div>
   </div>
 
-  <div class="metrics" style="margin-bottom:12px">
-    <div class="metric"><div class="m-lbl">Total deuda</div><div class="m-val r" id="proj-total-deuda" style="font-size:16px">S/ 0</div></div>
-    <div class="metric"><div class="m-lbl">Extra mensual</div><div class="m-val g" id="proj-extra" style="font-size:16px">S/ 0</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+    <div class="metric"><div class="m-lbl">Deuda total</div><div class="m-val r" id="proj-total-deuda" style="font-size:15px">S/ 0</div></div>
+    <div class="metric"><div class="m-lbl">Extra/mes</div><div class="m-val g" id="proj-extra" style="font-size:15px">S/ 0</div></div>
+    <div class="metric"><div class="m-lbl">Ahorro post-plan</div><div class="m-val" id="proj-ahorro-mes" style="font-size:15px;color:var(--purple)">S/ 0</div></div>
   </div>
 
-  <div class="card" style="margin-bottom:12px">
-    <div class="card-title">Proyeccion mes a mes</div>
-    <div id="proyeccion-lista"></div>
-  </div>
+  <div id="proj-ahorro-banner"></div>
 
-  <div class="card">
-    <div class="card-title">Reglas de oro</div>
-    <div class="row"><span class="row-label">1. Dia 25: pagar minimos PRIMERO</span></div>
-    <div class="row"><span class="row-label">2. Extra completo → deuda objetivo</span></div>
-    <div class="row"><span class="row-label">3. No usar tarjetas para gastos nuevos</span></div>
-    <div class="row"><span class="row-label">4. Cuando liquidas una: suma su minimo al extra</span></div>
-    <div class="row" style="border:none"><span class="row-label">5. Actualizar saldos cada corte de tarjeta</span></div>
+  <div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Proyeccion mes a mes</span>
+    <span style="font-size:11px;color:var(--muted)">Toca cada mes para ver detalle</span>
   </div>
+  <div id="proyeccion-lista"></div>
+
+  <div id="fase-ahorro-lista"></div>
+
 </div>
 
 <!-- DASHBOARD -->
@@ -747,6 +756,11 @@ function guardarYRecalcular(){
   setTimeout(()=>goTabNombre('plan'),600);
 }
 
+// TEA reales del mercado peruano (SBS 2025)
+const TEA={io:0.70,oh:0.69,ibk:0.72,prest:0};
+const TEM={};
+['io','oh','ibk','prest'].forEach(d=>{TEM[d]=Math.pow(1+TEA[d],1/12)-1;});
+
 function calcProyeccion(){
   const meses_nombres=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const ahora=new Date();
@@ -759,6 +773,7 @@ function calcProyeccion(){
   let extra=Math.max(0,D.ingreso-D.gastos-totalMin);
   let objetivo='io';
   const resultados=[];
+  let totalIntAcum=0;
 
   const mesConGrat=(m,a)=>{
     if(m===6&&a===2026)return D.grat_jul;
@@ -773,6 +788,19 @@ function calcProyeccion(){
 
   for(let i=0;i<36;i++){
     mes++;if(mes>11){mes=0;anio++;}
+
+    // Aplicar intereses sobre saldo ANTES del pago (tarjetas revolventes)
+    const interesesMes={io:0,oh:0,ibk:0,prest:0};
+    ['io','oh','ibk'].forEach(d=>{
+      if(saldos[d]>0){
+        const intd=parseFloat((saldos[d]*TEM[d]).toFixed(2));
+        interesesMes[d]=intd;
+        totalIntAcum+=intd;
+        saldos[d]=parseFloat((saldos[d]+intd).toFixed(2));
+      }
+    });
+    const totalIntMes=Object.values(interesesMes).reduce((a,b)=>a+b,0);
+
     const grat=mesConGrat(mes,anio);
     const gastoExt=mesConGastoExtra(mes);
     const extraMes=Math.max(0,extra+grat-gastoExt);
@@ -783,8 +811,8 @@ function calcProyeccion(){
     ['io','oh','ibk','prest'].forEach(d=>{
       if(saldos[d]<=0){pagos[d]=0;return;}
       const pago=d===objetivo?Math.min(minimos[d]+extraMes,saldos[d]):Math.min(minimos[d],saldos[d]);
-      pagos[d]=pago;
-      saldos[d]=Math.max(0,saldos[d]-pago);
+      pagos[d]=parseFloat(pago.toFixed(2));
+      saldos[d]=parseFloat(Math.max(0,saldos[d]-pago).toFixed(2));
     });
 
     const orden=['io','oh','ibk','prest'];
@@ -800,9 +828,15 @@ function calcProyeccion(){
     resultados.push({
       mes:meses_nombres[mes],anio,
       saldos:{...saldos},
+      pagos:{...pagos},
+      intereses:{...interesesMes},
+      totalIntMes:parseFloat(totalIntMes.toFixed(2)),
       liquidadas,
-      totalSaldo:Object.values(saldos).reduce((a,b)=>a+b,0),
-      grat,gastoExt
+      totalSaldo:parseFloat(Object.values(saldos).reduce((a,b)=>a+b,0).toFixed(2)),
+      totalPagado:parseFloat(Object.values(pagos).reduce((a,b)=>a+b,0).toFixed(2)),
+      totalIntAcum:parseFloat(totalIntAcum.toFixed(2)),
+      grat,gastoExt,
+      objetivo_mes:objetivo
     });
 
     if(Object.values(saldos).every(s=>s<=0))break;
@@ -816,39 +850,135 @@ function renderProyeccion(){
   const totalMin=D.io.minimo+D.oh.minimo+D.ibk.minimo+D.prest.minimo;
   const extra=Math.max(0,D.ingreso-D.gastos-totalMin);
 
+  // Ahorro post-plan: lo que liberan todas las deudas
+  const ahorroMes=D.ingreso-D.gastos;
   document.getElementById('proj-total-deuda').textContent=fmt(totalDeuda);
   document.getElementById('proj-extra').textContent=fmt(extra);
+  document.getElementById('proj-ahorro-mes').textContent=fmt(ahorroMes);
+  // Total intereses pagados
+  const totalInt=res[res.length-1].totalIntAcum||0;
+  document.getElementById('proj-sub').textContent=`${res.length} meses · S/ ${Math.round(totalInt)} en intereses a tarjetas`;
 
   const ultimo=res[res.length-1];
-  const mN=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const mIdx=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'].indexOf(ultimo.mes);
-  document.getElementById('proj-fecha').textContent=`${mN[mIdx]} ${ultimo.anio}`;
-  document.getElementById('proj-sub').textContent=`${res.length} meses · Total intereses ahorrados con el plan`;
+  const mNL=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const mNS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const mIdx=mNS.indexOf(ultimo.mes);
+  document.getElementById('proj-fecha').textContent=`${mNL[mIdx]} ${ultimo.anio}`;
+  document.getElementById('proj-sub').textContent=`${res.length} meses con el plan bola de nieve`;
 
-  const nombres={io:'IO Tarjeta',oh:'OH Tarjeta',ibk:'IBK Acces',prest:'Prestamo'};
-  let html='';
-  res.forEach((r,i)=>{
-    const hayLiq=r.liquidadas.length>0;
-    const bg=hayLiq?'background:var(--green-dim);border:1px solid rgba(34,214,142,.2)':'';
-    const totalPagado=Object.values(r.saldos).reduce((a,b)=>a+b,0);
-    html+=`<div class="plan-result-card" style="${bg}">
-      <div class="plan-month">${r.mes} ${r.anio}${r.grat?'  🎁 +'+fmtS(r.grat):''}${r.gastoExt?'  💸 -'+fmtS(r.gastoExt):''}
-        ${r.liquidadas.map(l=>`<span class="liq-badge">${l} pagada</span>`).join('')}
+  // Banner ahorro
+  document.getElementById('proj-ahorro-banner').innerHTML=`
+    <div class="ahorro-fase" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="width:36px;height:36px;border-radius:12px;background:var(--purple-dim);border:1px solid rgba(167,139,250,.3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">&#128176;</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--purple)">Fase ahorro — desde ${mNL[mIdx==-1?0:mIdx+1>11?0:mIdx+1]||'Mar'} ${ultimo.anio+(mIdx>=11?1:0)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Despues del ultimo pago, cada sol libre es tuyo</div>
+        </div>
       </div>
-      ${['io','oh','ibk','prest'].map(d=>r.saldos[d]>0||i===0?`
-        <div class="plan-deuda-row">
-          <span class="plan-deuda-name">${nombres[d]}</span>
-          <span class="plan-deuda-saldo" style="${r.saldos[d]===0?'color:var(--green)':''}">
-            ${r.saldos[d]===0?'✓ Liquidada':fmt(r.saldos[d])}
-          </span>
-        </div>`:``).join('')}
-      <div class="plan-total">
-        <span style="color:var(--muted)">Saldo total</span>
-        <span style="color:${totalPagado===0?'var(--green)':'var(--text)'}">${totalPagado===0?'S/ 0 — Libre!':fmt(totalPagado)}</span>
+      <div class="ahorro-meta-row">
+        <span style="font-size:13px;color:var(--muted)">Disponible mensual</span>
+        <span style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--purple)">${fmt(ahorroMes)}</span>
+      </div>
+      <div class="ahorro-meta-row">
+        <span style="font-size:13px;color:var(--muted)">Fondo emergencia (meta 3 meses)</span>
+        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--amber)">${fmt(D.gastos*3)} en 3 meses</span>
+      </div>
+      <div class="ahorro-meta-row">
+        <span style="font-size:13px;color:var(--muted)">Ahorro libre mensual (sugerido)</span>
+        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--green)">${fmt(ahorroMes*0.5)} — 50% del disponible</span>
+      </div>
+      <div class="ahorro-meta-row" style="border:none">
+        <span style="font-size:13px;color:var(--muted)">Ahorro en 12 meses</span>
+        <span style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--purple)">${fmt(ahorroMes*0.5*12)}</span>
+      </div>
+    </div>`;
+
+  const NDS={io:'IO Tarjeta',oh:'OH Tarjeta',ibk:'IBK Acces',prest:'Prestamo'};
+  const NDC={io:'#5b8fff',oh:'#22d68e',ibk:'#f5a623',prest:'#ff5a6e'};
+
+  let html='';
+  res.forEach((r,idx)=>{
+    const totalSaldoR=Object.values(r.saldos).reduce((a,b)=>a+b,0);
+    const hayLiq=r.liquidadas.length>0;
+    const esLibre=totalSaldoR===0;
+
+    // Card background
+    let cardStyle='background:var(--bg2);border:1px solid var(--border)';
+    if(esLibre) cardStyle='background:var(--green-dim);border:1px solid rgba(34,214,142,.3)';
+    else if(hayLiq) cardStyle='background:var(--bg2);border:1px solid rgba(34,214,142,.35)';
+    else if(r.grat) cardStyle='background:var(--blue-dim);border:1px solid rgba(91,143,255,.3)';
+
+    // Mes label
+    const mesLabel=`${r.mes} ${r.anio}`;
+    const uid=`mes-${idx}`;
+
+    // Events chips
+    let chips='';
+    if(r.grat) chips+=`<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--blue-dim);color:var(--blue);margin-left:6px">&#127873; +S/${fmtS(r.grat)}</span>`;
+    if(r.gastoExt) chips+=`<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--red-dim);color:var(--red);margin-left:4px">&#128184; -S/${fmtS(r.gastoExt)}</span>`;
+    if(hayLiq) r.liquidadas.forEach(l=>{chips+=`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--green-dim);color:var(--green);margin-left:4px">&#10003; ${NDS[l.toLowerCase()]||l}</span>`;});
+
+    // Deuda detail rows
+    const deudaRows=['io','oh','ibk','prest'].map(d=>{
+      const pago=r.pagos[d];
+      const saldo=r.saldos[d];
+      const yaLiqAntes=pago===0&&saldo===0&&idx>0&&res[idx-1]&&res[idx-1].saldos[d]===0;
+      if(yaLiqAntes) return '';
+      const liqEste=r.liquidadas.includes(d.toUpperCase());
+      const esObj=!liqEste&&pago>=(r.pagos?.io||0)&&d===r.objetivo_mes;
+      return `<div class="pago-row">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="pago-dot" style="background:${NDC[d]}"></div>
+          <div>
+            <span style="font-size:13px;font-weight:500">${NDS[d]}</span>
+            ${liqEste?'<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;background:var(--green-dim);color:var(--green);margin-left:4px">LIQUIDADA</span>':''}
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:13px;font-weight:600;font-family:\'DM Mono\',monospace;color:${liqEste?'var(--green)':'var(--text)'}">
+            ${pago>0?'- '+fmt(pago):'—'}
+          </div>
+          <div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace">
+            saldo: ${liqEste?'S/ 0':fmt(saldo)}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    html+=`<div style="${cardStyle};border-radius:16px;margin-bottom:8px;overflow:hidden">
+      <div class="mes-header" onclick="toggleMes('${uid}')">
+        <div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px">
+            <span style="font-size:14px;font-weight:700">${mesLabel}</span>${chips}
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">
+            ${esLibre?'&#127881; Ultimo pago — quedan S/ 0':`Total a pagar: <strong style="font-family:\'DM Mono\',monospace;color:var(--accent)">${fmt(r.totalPagado)}</strong> &nbsp;|&nbsp; Saldo: <span style="font-family:\'DM Mono\',monospace">${fmt(totalSaldoR)}</span>`}
+          </div>
+        </div>
+        <div id="arr-${uid}" style="color:var(--muted);font-size:16px;transition:transform .2s;flex-shrink:0;margin-left:8px">&#8964;</div>
+      </div>
+      <div class="mes-body" id="${uid}">
+        <div style="border-top:1px solid var(--border);padding-top:10px">
+          ${deudaRows}
+          <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+            <span style="font-size:12px;color:var(--muted)">Total pagado este mes</span>
+            <span style="font-size:14px;font-weight:700;font-family:\'DM Mono\',monospace;color:var(--accent)">${fmt(r.totalPagado)}</span>
+          </div>
+        </div>
       </div>
     </div>`;
   });
+
   document.getElementById('proyeccion-lista').innerHTML=html||'<p style="color:var(--muted);text-align:center;padding:20px">Actualiza tus datos para ver la proyeccion</p>';
+  document.getElementById('fase-ahorro-lista').innerHTML='';
+}
+
+function toggleMes(uid){
+  const body=document.getElementById(uid);
+  const arr=document.getElementById('arr-'+uid);
+  const open=body.classList.toggle('open');
+  arr.style.transform=open?'rotate(180deg)':'rotate(0deg)';
 }
 
 function registrar(){
