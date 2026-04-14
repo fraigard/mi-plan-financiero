@@ -343,28 +343,34 @@ select option{background:var(--bg3)}
     </div>
   </div>
 
-  <div class="section-sep"><span>Ingresos extraordinarios</span></div>
+  <div class="section-sep"><span>Eventos que afectan el plan</span></div>
 
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-title">Gratificaciones y bonos</div>
-    <div class="input-row" style="margin-bottom:10px">
+  <div class="card" style="margin-bottom:8px;background:var(--green-dim);border-color:rgba(34,214,142,.2)">
+    <div class="card-title" style="color:var(--green)">Ingresos extraordinarios (+)</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">Se suman al extra disponible para pagar deudas ese mes.</p>
+    <div class="input-row">
       <div class="form-group input-small">
-        <label>Gratif. Julio (S/)</label>
+        <label>Gratificacion Julio</label>
         <input type="number" id="e-grat-jul" min="0" step="100" placeholder="0">
       </div>
       <div class="form-group input-small">
-        <label>Gratif. Dic (S/)</label>
+        <label>Gratificacion Diciembre</label>
         <input type="number" id="e-grat-dic" min="0" step="100" placeholder="0">
       </div>
     </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;background:var(--red-dim);border-color:rgba(255,90,110,.2)">
+    <div class="card-title" style="color:var(--red)">Gastos extraordinarios (-)</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">Se restan del extra disponible. Reducen lo que puedes pagar a deudas ese mes.</p>
     <div class="input-row">
       <div class="form-group input-small">
-        <label>Regalos Dic (gasto)</label>
-        <input type="number" id="e-regalos" min="0" step="50" placeholder="0">
+        <label>Vacaciones x3 (Mayo/Ago/Nov)</label>
+        <input type="number" id="e-vac" min="0" step="50" placeholder="0">
       </div>
       <div class="form-group input-small">
-        <label>Vac. (Mayo/Ago/Nov)</label>
-        <input type="number" id="e-vac" min="0" step="50" placeholder="0">
+        <label>Regalos Diciembre</label>
+        <input type="number" id="e-regalos" min="0" step="50" placeholder="0">
       </div>
     </div>
   </div>
@@ -540,7 +546,22 @@ function showToast(msg='Guardado'){
 
 const fmt=n=>'S/ '+parseFloat(n).toFixed(2);
 const fmtS=n=>'S/'+Math.round(n);
-const todayStr=()=>new Date().toISOString().split('T')[0];
+const todayStr=()=>{
+  const ahora=new Date();
+  // Lima = UTC-5 siempre (Peru no tiene horario de verano)
+  const limaOffset=-5*60;
+  const limaMs=ahora.getTime()+(ahora.getTimezoneOffset()+limaOffset)*60000;
+  const limaDate=new Date(limaMs);
+  const y=limaDate.getFullYear();
+  const m=String(limaDate.getMonth()+1).padStart(2,'0');
+  const d=String(limaDate.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+d;
+};
+const limaDateObj=()=>{
+  const ahora=new Date();
+  const limaMs=ahora.getTime()+(ahora.getTimezoneOffset()-300)*60000;
+  return new Date(limaMs);
+};
 
 const TABS=['inicio','registrar','historial','dashboard','editar','plan','sync'];
 function goTab(id,tabBtn){
@@ -856,7 +877,7 @@ function confirmarLimpiar(){
 }
 
 function modoActual(){
-  const a=new Date(),anio=a.getFullYear(),mes=a.getMonth(),dia=a.getDate();
+  const a=limaDateObj(),anio=a.getFullYear(),mes=a.getMonth(),dia=a.getDate();
   if(anio<2026||anio===2026&&mes<3) return 'plan';
   if(anio===2026&&mes===3&&dia<25) return 'supervivencia';
   return 'plan';
@@ -866,7 +887,7 @@ function renderInicio(){
   const totalMes=gastos.reduce((a,g)=>a+g.monto,0);
   const hoy=todayStr();
   const totalHoy=gastos.filter(g=>g.fecha===hoy).reduce((a,g)=>a+g.monto,0);
-  const ahora=new Date();
+  const ahora=limaDateObj();
   const cobro=new Date(ahora.getFullYear(),ahora.getMonth(),25);
   if(cobro<=ahora)cobro.setMonth(cobro.getMonth()+1);
   const dias=Math.ceil((cobro-ahora)/(864e5));
@@ -951,7 +972,7 @@ function renderHistorial(){
     </div>`).join(''):'<div class="empty"><div class="empty-icon">🗂</div><div class="empty-text">Sin gastos para mostrar</div></div>';
 }
 
-const D2=new Date();
+const D2=limaDateObj();
 const dN=['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
 const mN2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 document.getElementById('fecha-hdr').textContent=`${dN[D2.getDay()]} ${D2.getDate()} ${mN2[D2.getMonth()]} ${D2.getFullYear()}`;
