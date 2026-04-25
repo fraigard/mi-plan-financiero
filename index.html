@@ -163,6 +163,8 @@ select option{background:var(--bg3)}
     <div>
       <div class="hdr-title">Mi Plan</div>
       <div class="hdr-date" id="fecha-hdr"></div>
+      <div style="font-size:11px;color:var(--accent);margin-top:2px;font-weight:500" id="periodo-hdr"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:1px" id="pago-hdr"></div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--green-dim);border-radius:99px;border:1px solid rgba(34,214,142,.2)">
       <span class="dot-live"></span>
@@ -178,6 +180,7 @@ select option{background:var(--bg3)}
   <button class="tab" onclick="goTab('dashboard',this)">Dashboard</button>
   <button class="tab" onclick="goTab('editar',this)">Actualizar</button>
   <button class="tab" onclick="goTab('plan',this)">Proyeccion</button>
+  <button class="tab" onclick="goTab('historia',this)">Historia</button>
   <button class="tab" onclick="goTab('sync',this)">Sincronizar</button>
 </div>
 
@@ -188,7 +191,7 @@ select option{background:var(--bg3)}
   <div class="hero">
     <div class="hero-label">Gastado este mes</div>
     <div class="hero-amount" id="hero-total">S/ 0.00</div>
-    <div class="hero-sub" id="hero-sub">Presupuesto: S/ 2,019 · Limite/dia: S/ 67</div>
+    <div class="hero-sub" id="hero-sub"></div>
     <div class="hero-bar"><div class="hero-bar-fill" id="hero-fill" style="width:0%"></div></div>
   </div>
   <div class="metrics">
@@ -454,6 +457,22 @@ select option{background:var(--bg3)}
 
 </div>
 
+<!-- HISTORIA -->
+<div id="s-historia" class="screen">
+  <div class="hero" style="margin-bottom:12px">
+    <div class="hero-label">Historial de periodos</div>
+    <div style="font-size:18px;font-weight:600;margin-top:4px" id="hist-periodo-actual">Periodo actual</div>
+    <div class="hero-sub" id="hist-periodo-label">Cargando...</div>
+  </div>
+  <div id="hist-resumen-actual" style="margin-bottom:12px"></div>
+  <div class="card-title" style="padding:0 4px;margin-bottom:10px;margin-top:4px">Periodos anteriores</div>
+  <div id="hist-lista"></div>
+  <div style="margin-top:12px">
+    <button class="btn btn-amber" onclick="cerrarPeriodoUI()" style="margin-bottom:8px">Cerrar periodo actual y archivar</button>
+    <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:4px">Haz esto cada dia 25 cuando cobres, antes de registrar gastos del nuevo periodo.</p>
+  </div>
+</div>
+
 <!-- SINCRONIZAR -->
 <div id="s-sync" class="screen">
 
@@ -518,7 +537,7 @@ select option{background:var(--bg3)}
   <button class="nav-btn" onclick="goTabNav('registrar',this)"><span class="nav-icon">＋</span><span class="nav-label">Gasto</span></button>
   <button class="nav-btn" onclick="goTabNav('dashboard',this)"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></button>
   <button class="nav-btn" onclick="goTabNav('editar',this)"><span class="nav-icon">✏️</span><span class="nav-label">Actualizar</span></button>
-  <button class="nav-btn" onclick="goTabNav('sync',this)"><span class="nav-icon">🔄</span><span class="nav-label">Sincronizar</span></button>
+  <button class="nav-btn" onclick="goTabNav('historia',this)"><span class="nav-icon">📅</span><span class="nav-label">Historia</span></button>
 </nav>
 
 <script>
@@ -529,9 +548,103 @@ const BGCAT={alimentacion:'#0d3d27',transporte:'#0d1f3d',servicios:'#3d2a08',col
 
 const GKEY='mipf_gastos_v3';
 const DKEY='mipf_deudas_v3';
+const HKEY='mipf_historia_v1'; // historial por periodo
 
 let gastos=[];
 try{gastos=JSON.parse(localStorage.getItem(GKEY)||'[]')}catch(e){}
+
+// Periodo financiero: del dia 25 al dia 24 del siguiente mes
+function periodoFinanciero(fecha){
+  // fecha: objeto Date en hora Lima
+  // El periodo empieza el dia HABIL de pago (puede ser antes del 25)
+  const d=fecha.getDate();
+  const m=fecha.getMonth(); // 0-11
+  const a=fecha.getFullYear();
+  const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const mesesL=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  
+  // Pago de este mes y del mes anterior
+  const pagoCurrent=diaPagoMes(a,m+1);  // pago de este mes calendario
+  const mesAnt=m===0?11:m-1;
+  const anioAnt=m===0?a-1:a;
+  const pagoAnt=diaPagoMes(anioAnt,mesAnt+1);  // pago del mes anterior
+  
+  const hoy=fecha.toISOString().split('T')[0];
+  
+  let iniStr,finMes,finAnio;
+  if(hoy>=pagoCurrent){
+    // Estamos despues del pago de este mes -> periodo nuevo
+    iniStr=pagoCurrent;
+    finMes=m+1>11?0:m+1;finAnio=m+1>11?a+1:a;
+  } else {
+    // Antes del pago de este mes -> periodo anterior
+    iniStr=pagoAnt;
+    finMes=m;finAnio=a;
+  }
+  
+  const iniDate=new Date(iniStr+'T12:00:00');
+  const iniM=iniDate.getMonth();
+  const iniA=iniDate.getFullYear();
+  const iniD=iniDate.getDate();
+  
+  // fin = dia anterior al proximo pago
+  const pagoFin=diaPagoMes(finAnio,finMes+1);
+  const pagoFinDate=new Date(pagoFin+'T12:00:00');
+  const finDate=new Date(pagoFinDate.getTime()-86400000);
+  const finStr=finDate.toISOString().split('T')[0];
+  const finM=finDate.getMonth();
+  
+  const iniLabel=`${iniD} ${meses[iniM]}`;
+  const finLabel=`${finDate.getDate()} ${meses[finM]}`;
+  
+  return {
+    label:`${iniLabel} — ${finLabel}`,
+    labelL:`${iniLabel} ${iniA} al ${finLabel} ${finDate.getFullYear()}`,
+    ini:iniStr,fin:finStr,
+    mes:iniM,anio:iniA,
+    key:`${iniA}-${String(iniM+1).padStart(2,'0')}`,
+    diaPago:iniStr
+  };
+}
+
+function periodoActual(){return periodoFinanciero(limaDateObj());}
+
+function gastosDePeriodo(p){
+  return gastos.filter(g=>g.fecha>=p.ini&&g.fecha<=p.fin);
+}
+
+function guardarHistoria(){
+  const p=periodoActual();
+  let hist={};
+  try{hist=JSON.parse(localStorage.getItem(HKEY)||'{}')}catch(e){}
+  hist[p.key]={
+    periodo:p,
+    gastos:gastosDePeriodo(p),
+    deudas:{...D},
+    cerrado:false,
+    guardado:new Date().toISOString()
+  };
+  localStorage.setItem(HKEY,JSON.stringify(hist));
+}
+
+function cerrarPeriodo(){
+  const p=periodoActual();
+  let hist={};
+  try{hist=JSON.parse(localStorage.getItem(HKEY)||'{}')}catch(e){}
+  if(!hist[p.key])guardarHistoria();
+  hist[p.key].cerrado=true;
+  hist[p.key].resumen={
+    totalGastado:gastosDePeriodo(p).reduce((a,g)=>a+g.monto,0),
+    numTransacciones:gastosDePeriodo(p).length,
+    deudas:{...D}
+  };
+  localStorage.setItem(HKEY,JSON.stringify(hist));
+  return hist[p.key];
+}
+
+function cargarHistoria(){
+  try{return JSON.parse(localStorage.getItem(HKEY)||'{}')}catch(e){return {};}
+}
 
 const DEFAULTS={
   ingreso:3600,gastos:2019,
@@ -572,7 +685,78 @@ const limaDateObj=()=>{
   return new Date(limaMs);
 };
 
-const TABS=['inicio','registrar','historial','dashboard','editar','plan','sync'];
+// ── Feriados nacionales Perú 2026-2028 ──────────────────────────
+const FERIADOS_PERU=new Set([
+  // 2026
+  '2026-01-01','2026-04-02','2026-04-03','2026-05-01','2026-06-29',
+  '2026-07-28','2026-07-29','2026-08-30','2026-10-08','2026-11-01',
+  '2026-12-08','2026-12-09','2026-12-25',
+  // 2027
+  '2027-01-01','2027-03-25','2027-03-26','2027-05-01','2027-06-29',
+  '2027-07-28','2027-07-29','2027-08-30','2027-10-08','2027-11-01',
+  '2027-12-08','2027-12-09','2027-12-25',
+  // 2028 (semana santa: 13 y 14 Abr)
+  '2028-01-01','2028-04-13','2028-04-14','2028-05-01','2028-06-29',
+  '2028-07-28','2028-07-29','2028-08-30','2028-10-08','2028-11-01',
+  '2028-12-08','2028-12-09','2028-12-25',
+]);
+
+function esDiaHabil(fecha){
+  // fecha: objeto Date Lima
+  const dow=fecha.getDay(); // 0=Dom,6=Sab
+  if(dow===0||dow===6) return false;
+  const iso=fecha.toISOString().split('T')[0];
+  if(FERIADOS_PERU.has(iso)) return false;
+  return true;
+}
+
+function diaPagoMes(anio,mes){
+  // Retorna fecha real de pago (dia 25 o anterior habil) como string YYYY-MM-DD
+  let candidato=new Date(anio,mes-1,25,12,0,0);
+  while(!esDiaHabil(candidato)){
+    candidato=new Date(candidato.getTime()-86400000);
+  }
+  const y=candidato.getFullYear();
+  const m=String(candidato.getMonth()+1).padStart(2,'0');
+  const d=String(candidato.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+
+function proximoPago(){
+  // Retorna {fecha, diasRestantes, adelantado, label}
+  const ahora=limaDateObj();
+  const anio=ahora.getFullYear();
+  const mes=ahora.getMonth()+1;
+  const diasN=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+  const mesesN=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  
+  // Calcular pago de este mes y siguiente
+  let fechaPago=diaPagoMes(anio,mes);
+  const hoyStr=ahora.toISOString().split('T')[0];
+  
+  // Si ya paso el pago de este mes, ir al siguiente
+  if(fechaPago<hoyStr){
+    const sigMes=mes===12?1:mes+1;
+    const sigAnio=mes===12?anio+1:anio;
+    fechaPago=diaPagoMes(sigAnio,sigMes);
+  }
+  
+  const pagoDate=new Date(fechaPago+'T12:00:00');
+  const dia25Date=new Date(pagoDate.getFullYear(),pagoDate.getMonth(),25,12,0,0);
+  const adelantado=Math.round((dia25Date-pagoDate)/86400000);
+  const diasRestantes=Math.ceil((pagoDate-ahora)/86400000);
+  const dow=pagoDate.getDay();
+  
+  return {
+    fecha:fechaPago,
+    diasRestantes,
+    adelantado,
+    label:`${diasN[dow]} ${pagoDate.getDate()} ${mesesN[pagoDate.getMonth()]}`,
+    hoy:diasRestantes===0
+  };
+}
+
+const TABS=['inicio','registrar','historial','dashboard','editar','plan','historia','sync'];
 function goTab(id,tabBtn){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -600,6 +784,70 @@ function onTabEnter(id){
   if(id==='plan')renderProyeccion();
   if(id==='sync')renderSync();
   if(id==='dashboard')renderDashboard();
+  if(id==='historia')renderHistoria();
+}
+
+function renderHistoria(){
+  const p=periodoActual();
+  const hist=cargarHistoria();
+  const gastosPeriodo=gastosDePeriodo(p);
+  const totalPeriodo=gastosPeriodo.reduce((a,g)=>a+g.monto,0);
+  const NDS_H={io:'IO Tarjeta',oh:'OH Tarjeta',ibk:'IBK Acces',prest:'Prestamo'};
+
+  document.getElementById('hist-periodo-actual').textContent=p.label;
+  document.getElementById('hist-periodo-label').textContent=p.labelL;
+
+  // Resumen del periodo actual
+  const por={};
+  gastosPeriodo.forEach(g=>{por[g.cat]=(por[g.cat]||0)+g.monto;});
+  const topCats=Object.keys(por).sort((a,b)=>por[b]-por[a]).slice(0,4);
+  document.getElementById('hist-resumen-actual').innerHTML=`
+    <div class="metrics" style="margin-bottom:10px">
+      <div class="metric"><div class="m-lbl">Gastado</div><div class="m-val b" style="font-size:17px">${fmt(totalPeriodo)}</div></div>
+      <div class="metric"><div class="m-lbl">Transacciones</div><div class="m-val g" style="font-size:17px">${gastosPeriodo.length}</div></div>
+    </div>
+    ${topCats.length?`<div class="card" style="margin-bottom:0">
+      <div class="card-title">Top categorias este periodo</div>
+      ${topCats.map(cat=>{
+        const pct=Math.min(100,Math.round(por[cat]/Math.max(totalPeriodo,1)*100));
+        return `<div class="prog-item"><div class="prog-top"><span class="prog-name">${EM[cat]} ${NOM[cat]}</span><span class="prog-amounts">${fmt(por[cat])}</span></div><div class="prog-bar"><div class="prog-fill pok" style="width:${pct}%"></div></div></div>`;
+      }).join('')}
+    </div>`:'<div class="card"><p style="font-size:13px;color:var(--muted);text-align:center;padding:12px">Sin gastos registrados en este periodo</p></div>'}`;
+
+  // Periodos anteriores
+  const keys=Object.keys(hist).sort().reverse();
+  const periodosAnt=keys.filter(k=>k!==p.key);
+  if(!periodosAnt.length){
+    document.getElementById('hist-lista').innerHTML='<div class="empty"><div class="empty-icon">&#128197;</div><div class="empty-text">Aun no hay periodos archivados.<br>El dia 25 de cada mes cierra el periodo actual.</div></div>';
+    return;
+  }
+  const mesesL=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('hist-lista').innerHTML=periodosAnt.map(k=>{
+    const h=hist[k];
+    const total=h.resumen?h.resumen.totalGastado:h.gastos.reduce((a,g)=>a+g.monto,0);
+    const n=h.resumen?h.resumen.numTransacciones:h.gastos.length;
+    const [ay,am]=k.split('-');
+    const label=`25 ${mesesL[parseInt(am)-1]} ${ay}`;
+    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div><div style="font-size:14px;font-weight:600">${h.periodo?h.periodo.label:label}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${n} transacciones ${h.cerrado?'· Cerrado':''}</div></div>
+        <div style="text-align:right"><div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent)">${fmt(total)}</div>
+        <div style="font-size:10px;color:var(--muted)">gastado</div></div>
+      </div>
+      ${h.resumen&&h.resumen.deudas?`<div style="font-size:11px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap">
+        ${Object.entries(h.resumen.deudas).filter(([k])=>['io','oh','ibk','prest'].includes(k)).map(([d,v])=>`<span>${NDS_H[d]}: <strong style="color:var(--text)">S/${v.saldo||v}</strong></span>`).join('')}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function cerrarPeriodoUI(){
+  if(!confirm('Cerrar el periodo actual y archivarlo? Podras ver el resumen en Historia.'))return;
+  cerrarPeriodo();
+  guardarHistoria();
+  showToast('Periodo archivado correctamente');
+  renderHistoria();
 }
 
 function renderSync(){
@@ -621,10 +869,12 @@ function renderSync(){
 
 function exportarJSON(){
   const payload={
-    version:'mipf-v3',
+    version:'mipf-v4',
     exportado:new Date().toISOString(),
     gastos,
-    deudas:D
+    deudas:D,
+    historia:cargarHistoria(),
+    periodo_actual:periodoActual()
   };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
@@ -653,8 +903,11 @@ function copiarJSON(){
 function exportarCSV(){
   if(!gastos.length){alert('No hay gastos para exportar');return;}
   const NOM2={alimentacion:'Alimentacion',transporte:'Transporte',servicios:'Servicios',colegio:'Colegio hijos',seguros:'Seguros',deudas:'Deudas',suscripciones:'Suscripciones',viaje:'Fondo viaje papas',extras:'Extras',otros:'Otros'};
-  const encabezado='Fecha,Descripcion,Categoria,Monto (S/)';
-  const filas=gastos.map(g=>`${g.fecha},"${g.desc.replace(/"/g,'""')}","${NOM2[g.cat]||g.cat}",${g.monto.toFixed(2)}`);
+  const encabezado='Fecha,Descripcion,Categoria,Monto (S/),Periodo';
+  const filas=gastos.map(g=>{
+    const gP=periodoFinanciero(new Date(g.fecha+'T12:00:00'));
+    return `${g.fecha},"${g.desc.replace(/"/g,'""')}","${NOM2[g.cat]||g.cat}",${g.monto.toFixed(2)},"${gP.label}"`;
+  });
   const resumen=[
     '','--- RESUMEN ---','',
     `Total gastos,${gastos.reduce((a,g)=>a+g.monto,0).toFixed(2)}`,
@@ -694,6 +947,7 @@ function previsualizarImport(input){
     try{
       const data=JSON.parse(e.target.result);
       if(!data.gastos||!data.deudas){alert('Archivo no valido. Debe ser un JSON exportado desde esta app.');return;}
+      if(data.historia)localStorage.setItem(HKEY,JSON.stringify(data.historia));
       importData=data;
       const prev=document.getElementById('import-preview');
       prev.style.display='block';
@@ -1014,7 +1268,8 @@ function modoActual(){
 }
 function renderInicio(){
   const modo=modoActual();
-  const totalMes=gastos.reduce((a,g)=>a+g.monto,0);
+  const pModo=periodoActual();
+  const totalMes=gastosDePeriodo(pModo).reduce((a,g)=>a+g.monto,0);
   const hoy=todayStr();
   const totalHoy=gastos.filter(g=>g.fecha===hoy).reduce((a,g)=>a+g.monto,0);
   const ahora=limaDateObj();
@@ -1024,14 +1279,16 @@ function renderInicio(){
   if(modo==='supervivencia'){
     const saldo=300,limD=Math.max(1,Math.round(saldo/dias)),dispS=Math.max(0,saldo-totalMes),pctS=Math.min(100,Math.round(totalMes/saldo*100));
     document.getElementById('hero-total').textContent=fmt(totalMes);
-    document.getElementById('hero-sub').textContent='Modo supervivencia \xb7 Saldo S/'+saldo+' \xb7 Cobro en '+dias+' dias';
+    const pActS=periodoActual();
+    document.getElementById('hero-sub').textContent='Modo supervivencia \xb7 '+pActS.label+' \xb7 Cobro en '+dias+' dias';
     document.getElementById('hero-fill').style.width=pctS+'%';
     document.getElementById('hero-fill').style.background=pctS>=80?'var(--red)':pctS>=50?'var(--amber)':'var(--blue)';
     document.getElementById('m-hoy').textContent=fmt(totalHoy);
     document.getElementById('m-hoy').className='m-val '+(totalHoy>limD?'r':'b');
     document.getElementById('m-disp').textContent=fmt(dispS);
     document.getElementById('m-disp').className='m-val '+(dispS<80?'r':dispS<150?'a':'b');
-    let ah='<div class="alert" style="background:var(--blue-dim);border-color:rgba(91,143,255,.25);margin-bottom:12px"><div style="font-size:16px">&#128737;</div><div class="alert-text" style="color:var(--blue)"><strong>Modo supervivencia hasta el 25 de Abril</strong><br>Saldo: S/'+saldo+' | '+dias+' dias restantes | Limite diario: <strong>S/ '+limD+'</strong><br>Solo alimentacion y transporte. Nada mas.</div></div>';
+    const advText=ppInfo.adelantado>0?` (${ppInfo.label})`:'';
+    let ah='<div class="alert" style="background:var(--blue-dim);border-color:rgba(91,143,255,.25);margin-bottom:12px"><div style="font-size:16px">&#128737;</div><div class="alert-text" style="color:var(--blue)"><strong>Modo supervivencia</strong> · Cobras el '+ppInfo.label+advText+'<br>Saldo: S/'+saldo+' | '+dias+' dias restantes | Limite diario: <strong>S/ '+limD+'</strong><br>Solo alimentacion y transporte. Nada mas.</div></div>';
     if(dispS<60)ah+='<div class="alert alert-danger"><div style="font-size:16px">&#9888;</div><div class="alert-text" style="color:var(--red)">Saldo critico: S/'+dispS.toFixed(0)+' restantes. Extremo cuidado.</div></div>';
     else if(totalHoy>limD)ah+='<div class="alert alert-warn"><div style="font-size:16px">&#9889;</div><div class="alert-text" style="color:var(--amber)">Superaste el limite diario de S/'+limD+'. Ajusta manana.</div></div>';
     document.getElementById('alertas-box').innerHTML=ah;
@@ -1050,7 +1307,8 @@ function renderInicio(){
   } else {
     const presup=D.gastos,disp=Math.max(0,presup-totalMes),pct=Math.min(100,Math.round(totalMes/presup*100)),limD=Math.round(presup/30);
     document.getElementById('hero-total').textContent=fmt(totalMes);
-    document.getElementById('hero-sub').textContent='Presupuesto: '+fmt(presup)+' \xb7 Limite/dia: S/ '+limD;
+    const pAct=periodoActual();
+    document.getElementById('hero-sub').textContent='Periodo: '+pAct.label+' \xb7 Presupuesto: '+fmt(presup);
     document.getElementById('hero-fill').style.width=pct+'%';
     document.getElementById('hero-fill').style.background=pct>=100?'var(--red)':pct>=80?'var(--amber)':'var(--green)';
     document.getElementById('m-hoy').textContent=fmt(totalHoy);
@@ -1063,14 +1321,19 @@ function renderInicio(){
     else if(pct<30&&gastos.length>0)ah='<div class="alert alert-ok"><div style="font-size:16px">&#10003;</div><div class="alert-text" style="color:var(--green)">Vas muy bien este mes.</div></div>';
     document.getElementById('alertas-box').innerHTML=ah;
     const por={};
-    gastos.forEach(g=>{por[g.cat]=(por[g.cat]||0)+g.monto;});
+    const pRI=periodoActual();
+    const gastosP=gastosDePeriodo(pRI);
+    gastosP.forEach(g=>{por[g.cat]=(por[g.cat]||0)+g.monto;});
     const cats=Object.keys(PRESUP).filter(c=>(por[c]||0)>0);
     document.getElementById('cats-home').innerHTML=cats.length?cats.map(cat=>{
       const g=por[cat]||0,p=PRESUP[cat],pct2=Math.min(100,Math.round(g/p*100)),cls=pct2>=100?'pdanger':pct2>=80?'pwarn':'pok';
       return '<div class="prog-item"><div class="prog-top"><span class="prog-name">'+EM[cat]+' '+NOM[cat]+'</span><span class="prog-amounts">'+fmt(g)+' / '+fmt(p)+'</span></div><div class="prog-bar"><div class="prog-fill '+cls+'" style="width:'+pct2+'%"></div></div></div>';
     }).join(''):'<div class="empty"><div class="empty-icon">&#128202;</div><div class="empty-text">Registra gastos para ver el avance</div></div>';
     const totalMin=D.io.minimo+D.oh.minimo+D.ibk.minimo+D.prest.minimo;
+    const ppRec=proximoPago();
+    const advRec=ppRec.adelantado>0?`<span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--amber-dim);color:var(--amber);margin-left:6px">adelantado ${ppRec.adelantado}d por feriado</span>`:'';
     document.getElementById('recordatorio-minimos').innerHTML=
+      `<div class="row"><span class="row-label" style="color:var(--green);font-weight:600">Dia de pago ${ppRec.hoy?'&#128197; HOY!':ppRec.label} ${advRec}</span><span class="row-val" style="color:var(--green)">${ppRec.diasRestantes===0?'HOY':ppRec.diasRestantes+'d'}</span></div>`+
       '<div class="row"><span class="row-label">IO Tarjeta (+ extra)</span><span class="row-val" style="color:var(--blue)">S/ '+D.io.minimo+'</span></div>'+
       '<div class="row"><span class="row-label">OH Tarjeta</span><span class="row-val">S/ '+D.oh.minimo+'</span></div>'+
       '<div class="row"><span class="row-label">IBK Acces</span><span class="row-val">S/ '+D.ibk.minimo+'</span></div>'+
@@ -1085,7 +1348,9 @@ function renderInicio(){
 
 function renderHistorial(){
   const filtro=document.getElementById('filtro-cat').value;
-  const lista=filtro?gastos.filter(g=>g.cat===filtro):gastos;
+  const pHist=periodoActual();
+  const gastosPH=gastosDePeriodo(pHist);
+  const lista=filtro?gastosPH.filter(g=>g.cat===filtro):gastosPH;
   const total=lista.reduce((a,g)=>a+g.monto,0);
   const dias=new Set(lista.map(g=>g.fecha)).size||1;
   document.getElementById('stat-n').textContent=lista.length;
@@ -1106,6 +1371,22 @@ const D2=limaDateObj();
 const dN=['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
 const mN2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 document.getElementById('fecha-hdr').textContent=`${dN[D2.getDay()]} ${D2.getDate()} ${mN2[D2.getMonth()]} ${D2.getFullYear()}`;
+const pActual=periodoActual();
+document.getElementById('periodo-hdr').textContent=`Periodo: ${pActual.label}`;
+// Mostrar proximo pago
+const ppago=proximoPago();
+const pagoEl=document.getElementById('pago-hdr');
+if(pagoEl){
+  if(ppago.hoy){
+    pagoEl.textContent='Hoy es dia de pago!';
+    pagoEl.style.color='var(--green)';
+  } else {
+    const adv=ppago.adelantado>0?` (adelantado ${ppago.adelantado} dia${ppago.adelantado>1?'s':''} por ${ppago.adelantado===1?'feriado/fin de semana':'feriados/fin de semana'})`:'';
+    pagoEl.textContent=`Proximo pago: ${ppago.label}${adv} · ${ppago.diasRestantes} dia${ppago.diasRestantes!==1?'s':''} restante${ppago.diasRestantes!==1?'s':''}`;
+  }
+}
+// Auto-guardar historial periodicamente
+guardarHistoria();
 
 let chartCat=null,chartDiario=null,chartDeudas=null,chartIngreso=null;
 
