@@ -218,13 +218,23 @@ select option{background:var(--bg3)}
     <div class="form-group" style="margin-bottom:18px">
       <label class="form-label">Categoria</label>
       <select id="inp-cat">
-        <option value="alimentacion">🍽  Alimentacion</option>
-        <option value="transporte">🚌  Transporte</option>
-        <option value="servicios">💡  Servicios</option>
-        <option value="colegio">🏫  Colegio hijos</option>
+        <option value="alimentacion">🍽  Alimentacion (mercado, restaurante)</option>
+        <option value="transporte">🚌  Transporte (bus, taxi, uber)</option>
+        <option value="servicios">💡  Servicios (luz, agua, gas, internet)</option>
+        <option value="colegio">🏫  Colegio mensualidad</option>
+        <option value="utiles">🎒  Utiles y extras del colegio</option>
+        <option value="salud">💊  Salud y Medicinas</option>
         <option value="seguros">🛡  Seguros</option>
-        <option value="deudas">💳  Pago deuda / minimo</option>
-        <option value="suscripciones">📱  Suscripciones</option>
+        <option value="deudas">💳  Deudas / Minimos tarjeta</option>
+        <option value="suscripciones">📱  Suscripciones (apps, streaming)</option>
+        <option value="ropa">👕  Ropa y Calzado</option>
+        <option value="entretenimiento">🎭  Entretenimiento (cine, salidas)</option>
+        <option value="delivery">🛵  Delivery y comida rapida</option>
+        <option value="mantenimiento">🔧  Mantenimiento del hogar</option>
+        <option value="belleza">💇  Belleza y cuidado personal</option>
+        <option value="regalo">🎁  Regalos</option>
+        <option value="mascota">🐾  Mascotas</option>
+        <option value="ahorro_meta">🎯  Fondo / Ahorro meta</option>
         <option value="viaje">✈  Fondo viaje papas</option>
         <option value="extras">💰  Gastos extras</option>
         <option value="otros">📦  Otros</option>
@@ -240,6 +250,20 @@ select option{background:var(--bg3)}
 
 <!-- HISTORIAL -->
 <div id="s-historial" class="screen">
+
+  <div style="display:flex;background:var(--bg3);border-radius:12px;padding:3px;margin-bottom:12px;gap:3px">
+    <button id="toggle-periodo" onclick="setVistaHist('periodo')"
+      style="flex:1;padding:9px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:var(--text);color:var(--bg);transition:all .2s">
+      Periodo actual
+    </button>
+    <button id="toggle-todo" onclick="setVistaHist('todo')"
+      style="flex:1;padding:9px;border-radius:10px;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:var(--muted);transition:all .2s">
+      Todo el historial
+    </button>
+  </div>
+
+  <div id="hist-vista-label" style="font-size:11px;color:var(--muted);margin-bottom:10px;text-align:center"></div>
+
   <div class="stat-grid">
     <div class="stat-chip"><div class="s-val" id="stat-n">0</div><div class="s-lbl">registros</div></div>
     <div class="stat-chip"><div class="s-val" id="stat-t">S/0</div><div class="s-lbl">total</div></div>
@@ -248,16 +272,26 @@ select option{background:var(--bg3)}
   <div class="filter-row">
     <select id="filtro-cat" onchange="renderHistorial()">
       <option value="">Todas las categorias</option>
-      <option value="alimentacion">Alimentacion</option>
-      <option value="transporte">Transporte</option>
-      <option value="servicios">Servicios</option>
-      <option value="colegio">Colegio</option>
-      <option value="seguros">Seguros</option>
-      <option value="deudas">Deudas</option>
-      <option value="suscripciones">Suscripciones</option>
-      <option value="viaje">Viaje papas</option>
-      <option value="extras">Extras</option>
-      <option value="otros">Otros</option>
+      <option value="alimentacion">🍽 Alimentacion</option>
+      <option value="transporte">🚌 Transporte</option>
+      <option value="servicios">💡 Servicios</option>
+      <option value="colegio">🏫 Colegio</option>
+      <option value="utiles">🎒 Utiles colegio</option>
+      <option value="salud">💊 Salud y Medicinas</option>
+      <option value="seguros">🛡 Seguros</option>
+      <option value="deudas">💳 Deudas</option>
+      <option value="suscripciones">📱 Suscripciones</option>
+      <option value="ropa">👕 Ropa</option>
+      <option value="entretenimiento">🎭 Entretenimiento</option>
+      <option value="delivery">🛵 Delivery</option>
+      <option value="mantenimiento">🔧 Mantenimiento</option>
+      <option value="belleza">💇 Belleza</option>
+      <option value="regalo">🎁 Regalos</option>
+      <option value="mascota">🐾 Mascotas</option>
+      <option value="ahorro_meta">🎯 Ahorro meta</option>
+      <option value="viaje">✈ Viaje papas</option>
+      <option value="extras">💰 Extras</option>
+      <option value="otros">📦 Otros</option>
     </select>
     <button class="btn btn-danger" onclick="confirmarLimpiar()" style="width:auto;padding:10px 14px;margin:0;font-size:13px">Limpiar</button>
   </div>
@@ -389,8 +423,9 @@ select option{background:var(--bg3)}
   </div>
 
   <button class="btn btn-primary" onclick="guardarYRecalcular()" style="margin-bottom:8px">Guardar y recalcular plan</button>
-  <button class="btn btn-ghost" onclick="goTabNombre('plan')">Ver proyeccion actualizada →</button>
+  <button class="btn btn-ghost" onclick="goTabNombre('plan')" style="margin-bottom:0">Ver proyeccion actualizada →</button>
 </div>
+
 
 <!-- PROYECCION -->
 <div id="s-plan" class="screen">
@@ -468,8 +503,32 @@ select option{background:var(--bg3)}
   <div class="card-title" style="padding:0 4px;margin-bottom:10px;margin-top:4px">Periodos anteriores</div>
   <div id="hist-lista"></div>
   <div style="margin-top:12px">
-    <button class="btn btn-amber" onclick="cerrarPeriodoUI()" style="margin-bottom:8px">Cerrar periodo actual y archivar</button>
-    <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:4px">Haz esto cada dia 25 cuando cobres, antes de registrar gastos del nuevo periodo.</p>
+    <button class="btn btn-amber" onclick="cerrarPeriodoUI()" style="margin-bottom:8px">&#128197; Cerrar periodo y archivar</button>
+    <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:4px">Hazlo cada dia 25 antes de registrar gastos del nuevo periodo.</p>
+  </div>
+
+  <div class="section-sep" style="margin-top:20px"><span>Zona de reset</span></div>
+
+  <div style="background:var(--bg2);border:1px solid rgba(255,90,110,.2);border-radius:18px;padding:18px;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Opciones de reset</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">Usa estas opciones al inicio de un nuevo periodo o cuando necesites empezar de cero. Siempre exporta un JSON antes como respaldo.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:var(--amber-dim);border:1px solid rgba(245,166,35,.2);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:20px;margin-bottom:6px">&#128682;</div>
+        <div style="font-size:13px;font-weight:600;color:var(--amber);margin-bottom:4px">Solo gastos</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.4">Borra movimientos. Mantiene saldos y configuracion de deudas.</div>
+        <button class="btn" onclick="resetSoloGastos()" style="background:var(--amber);color:#000;margin:0;padding:10px;font-size:13px;border-radius:10px">Limpiar gastos</button>
+      </div>
+      <div style="background:var(--red-dim);border:1px solid rgba(255,90,110,.2);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:20px;margin-bottom:6px">&#128165;</div>
+        <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:4px">Reset total</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.4">Borra todo y vuelve a valores por defecto. Irreversible.</div>
+        <button class="btn" onclick="resetTotal()" style="background:var(--red);color:#fff;margin:0;padding:10px;font-size:13px;border-radius:10px">Resetear todo</button>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 12px;background:var(--bg3);border-radius:10px">
+      <p style="font-size:11px;color:var(--muted);line-height:1.6">&#128276; <strong style="color:var(--text)">Antes de resetear:</strong> ve a Sincronizar → Descargar JSON para guardar una copia de seguridad.</p>
+    </div>
   </div>
 </div>
 
@@ -541,10 +600,46 @@ select option{background:var(--bg3)}
 </nav>
 
 <script>
-const PRESUP={alimentacion:500,transporte:80,servicios:543,colegio:600,seguros:236,deudas:1359,suscripciones:140,viaje:622,extras:80,otros:50};
-const NOM={alimentacion:'Alimentacion',transporte:'Transporte',servicios:'Servicios',colegio:'Colegio hijos',seguros:'Seguros',deudas:'Deudas',suscripciones:'Suscripciones',viaje:'Fondo viaje papas',extras:'Extras',otros:'Otros'};
-const EM={alimentacion:'🍽',transporte:'🚌',servicios:'💡',colegio:'🏫',seguros:'🛡',deudas:'💳',suscripciones:'📱',viaje:'✈',extras:'💰',otros:'📦'};
-const BGCAT={alimentacion:'#0d3d27',transporte:'#0d1f3d',servicios:'#3d2a08',colegio:'#1e1538',seguros:'#0d3d27',deudas:'#3d1018',suscripciones:'#2d1535',viaje:'#0d3d27',extras:'#1c1c26',otros:'#1c1c26'};
+const PRESUP={alimentacion:500,transporte:80,servicios:543,colegio:600,seguros:236,deudas:1359,suscripciones:140,viaje:622,salud:100,ropa:80,utiles:50,mascota:0,entretenimiento:50,mantenimiento:50,belleza:50,delivery:60,regalo:0,ahorro_meta:0,extras:80,otros:50};
+
+// Límites sugeridos por categoría (basados en plan definitivo)
+// null = sin límite diario (pago único mensual o variable)
+const LIM_DIARIO={
+  alimentacion:17,   // S/500 ÷ 30 días
+  transporte:4,      // S/80 ÷ 22 días hábiles
+  servicios:null,    // pago único mensual
+  colegio:null,      // pago único mensual
+  utiles:12,         // S/50 en ~4 compras
+  salud:null,        // urgencias sin límite diario
+  seguros:null,      // pago único mensual
+  deudas:null,       // pago único día 25
+  suscripciones:null,// cobros automáticos
+  ropa:40,           // S/80 en ~2 compras
+  entretenimiento:12,// S/50 en ~4 salidas
+  delivery:8,        // máx S/8 por pedido (~2/semana)
+  mantenimiento:25,  // S/50 en ~2 ocasiones
+  belleza:25,        // S/50 en ~2 ocasiones
+  regalo:null,       // según evento
+  mascota:null,      // según necesidad
+  ahorro_meta:null,  // cuando aplique
+  viaje:null,        // fondo apartado
+  extras:10,         // S/80 en ~8 días
+  otros:10,          // S/50 en ~5 ocasiones
+};
+
+// Tipos de categoría para mostrar límite correcto
+const CAT_TIPO={
+  alimentacion:'diario',transporte:'diario',servicios:'mensual_fijo',
+  colegio:'mensual_fijo',utiles:'mensual',salud:'mensual',
+  seguros:'mensual_fijo',deudas:'mensual_fijo',suscripciones:'mensual_fijo',
+  ropa:'mensual',entretenimiento:'mensual',delivery:'diario',
+  mantenimiento:'mensual',belleza:'mensual',regalo:'variable',
+  mascota:'variable',ahorro_meta:'variable',viaje:'variable',
+  extras:'diario',otros:'mensual',
+};
+const NOM={alimentacion:'Alimentacion',transporte:'Transporte',servicios:'Servicios',colegio:'Colegio mensualidad',seguros:'Seguros',deudas:'Deudas / Minimos',suscripciones:'Suscripciones',viaje:'Fondo viaje papas',salud:'Salud y Medicinas',ropa:'Ropa y Calzado',utiles:'Utiles y Colegio extras',mascota:'Mascotas',entretenimiento:'Entretenimiento',mantenimiento:'Mant. del hogar',belleza:'Belleza y cuidado',delivery:'Delivery y comida rapida',regalo:'Regalos',ahorro_meta:'Fondo / Ahorro meta',extras:'Gastos extras',otros:'Otros'};
+const EM={alimentacion:'🍽',transporte:'🚌',servicios:'💡',colegio:'🏫',seguros:'🛡',deudas:'💳',suscripciones:'📱',viaje:'✈',salud:'💊',ropa:'👕',utiles:'🎒',mascota:'🐾',entretenimiento:'🎭',mantenimiento:'🔧',belleza:'💇',delivery:'🛵',regalo:'🎁',ahorro_meta:'🎯',extras:'💰',otros:'📦'};
+const BGCAT={alimentacion:'#0d3d27',transporte:'#0d1f3d',servicios:'#3d2a08',colegio:'#1e1538',seguros:'#0d3d27',deudas:'#3d1018',suscripciones:'#2d1535',viaje:'#0d3d27',salud:'#1a2e1a',ropa:'#2a1a3a',utiles:'#1a1a3a',mascota:'#3a2a0a',entretenimiento:'#1a3a3a',mantenimiento:'#2a1a0a',belleza:'#3a1a2a',delivery:'#3a2010',regalo:'#3a1a0a',ahorro_meta:'#0d3d27',extras:'#1c1c26',otros:'#1c1c26'};
 
 const GKEY='mipf_gastos_v3';
 const DKEY='mipf_deudas_v3';
@@ -648,11 +743,18 @@ function cargarHistoria(){
 
 const DEFAULTS={
   ingreso:3600,gastos:2019,
-  io:{saldo:1840,minimo:200},
-  oh:{saldo:1919.8,minimo:180},
-  ibk:{saldo:2821,minimo:490},
+  io:{saldo:2156.55,minimo:175.13},
+  oh:{saldo:2173.00,minimo:212.51},
+  ibk:{saldo:3485.00,minimo:490.00},
   prest:{saldo:10000,minimo:489},
-  grat_jul:4200,grat_dic:4200,regalos:1000,vac:400
+  grat_jul:4200,grat_dic:4200,
+  // Gastos extraordinarios que salen de las gratificaciones
+  viaje_papas:800,      // Viaje papas Huancayo - Julio 2026
+  vac_ago:400,          // Vacaciones Agosto - cubierto con grat Julio
+  celebracion_papas:70, // Cena aniversario Lima - Mayo 2026 (tu parte)
+  regalos:1000,         // Regalos Navidad/Año nuevo - Diciembre
+  vac_nov:400,          // Vacaciones Noviembre - cubierto con grat Dic
+  vac_mayo:150          // Vacaciones Mayo - plan sencillo Lima
 };
 
 let D={...DEFAULTS};
@@ -902,7 +1004,7 @@ function copiarJSON(){
 
 function exportarCSV(){
   if(!gastos.length){alert('No hay gastos para exportar');return;}
-  const NOM2={alimentacion:'Alimentacion',transporte:'Transporte',servicios:'Servicios',colegio:'Colegio hijos',seguros:'Seguros',deudas:'Deudas',suscripciones:'Suscripciones',viaje:'Fondo viaje papas',extras:'Extras',otros:'Otros'};
+  const NOM2=NOM; // usa el mismo objeto global de categorias
   const encabezado='Fecha,Descripcion,Categoria,Monto (S/),Periodo';
   const filas=gastos.map(g=>{
     const gP=periodoFinanciero(new Date(g.fecha+'T12:00:00'));
@@ -987,10 +1089,14 @@ function cargarFormulario(){
   document.getElementById('e-ibk-minimo').value=D.ibk.minimo;
   document.getElementById('e-prest-saldo').value=D.prest.saldo;
   document.getElementById('e-prest-minimo').value=D.prest.minimo;
-  document.getElementById('e-grat-jul').value=D.grat_jul;
-  document.getElementById('e-grat-dic').value=D.grat_dic;
-  document.getElementById('e-regalos').value=D.regalos;
-  document.getElementById('e-vac').value=D.vac;
+  document.getElementById('e-grat-jul').value=D.grat_jul||4200;
+  document.getElementById('e-grat-dic').value=D.grat_dic||4200;
+  document.getElementById('e-regalos').value=D.regalos||1000;
+  if(document.getElementById('e-viaje-papas')) document.getElementById('e-viaje-papas').value=D.viaje_papas||800;
+  if(document.getElementById('e-vac-ago')) document.getElementById('e-vac-ago').value=D.vac_ago||400;
+  if(document.getElementById('e-vac-nov')) document.getElementById('e-vac-nov').value=D.vac_nov||400;
+  if(document.getElementById('e-vac-mayo')) document.getElementById('e-vac-mayo').value=D.vac_mayo||150;
+  if(document.getElementById('e-celebracion')) document.getElementById('e-celebracion').value=D.celebracion_papas||70;
 }
 
 function guardarYRecalcular(){
@@ -1002,8 +1108,14 @@ function guardarYRecalcular(){
     oh:{saldo:g('e-oh-saldo'),minimo:g('e-oh-minimo')},
     ibk:{saldo:g('e-ibk-saldo'),minimo:g('e-ibk-minimo')},
     prest:{saldo:g('e-prest-saldo'),minimo:g('e-prest-minimo')},
-    grat_jul:g('e-grat-jul'),grat_dic:g('e-grat-dic'),
-    regalos:g('e-regalos'),vac:g('e-vac')
+    grat_jul:g('e-grat-jul')||4200,
+    grat_dic:g('e-grat-dic')||4200,
+    regalos:g('e-regalos')||1000,
+    viaje_papas:g('e-viaje-papas')||800,
+    vac_ago:g('e-vac-ago')||400,
+    vac_nov:g('e-vac-nov')||400,
+    vac_mayo:g('e-vac-mayo')||150,
+    celebracion_papas:g('e-celebracion')||70
   };
   saveDeudas();
   showToast('Guardado — proyeccion actualizada');
@@ -1034,10 +1146,18 @@ function calcProyeccion(){
     if(m===11&&a===2026)return D.grat_dic;
     return 0;
   };
-  const mesConGastoExtra=(m)=>{
-    if(m===4||m===7||m===10)return D.vac;
-    if(m===11)return D.regalos;
-    return 0;
+  const mesConGastoExtra=(m,a)=>{
+    // Gastos que salen de las gratificaciones o del ingreso mensual
+    let gasto=0;
+    // Julio 2026: viaje papas + vac agosto + celebracion
+    if(m===6&&a===2026) gasto+=(D.viaje_papas||800)+(D.vac_ago||400)+(D.celebracion_papas||70);
+    // Diciembre: regalos + vac noviembre
+    if(m===11&&a===2026) gasto+=(D.regalos||1000)+(D.vac_nov||400);
+    // Mayo: vacaciones sencillas Lima (cada año)
+    if(m===4) gasto+=(D.vac_mayo||150);
+    // Agosto 2027+: vacaciones agosto (ya no cubierto por grat)
+    if(m===7&&a>=2027) gasto+=400;
+    return gasto;
   };
 
   for(let i=0;i<36;i++){
@@ -1056,8 +1176,10 @@ function calcProyeccion(){
     const totalIntMes=Object.values(interesesMes).reduce((a,b)=>a+b,0);
 
     const grat=mesConGrat(mes,anio);
-    const gastoExt=mesConGastoExtra(mes);
-    const extraMes=Math.max(0,extra+grat-gastoExt);
+    const gastoExt=mesConGastoExtra(mes,anio);
+    // Mayo 2026: mes ajustado, sin extra (ya se gastaron S/600 del ingreso)
+    const esMayoAjustado=(mes===4&&anio===2026);
+    const extraMes=esMayoAjustado?0:Math.max(0,extra+grat-gastoExt);
 
     const pagos={io:0,oh:0,ibk:0,prest:0};
     const liquidadas=[];
@@ -1121,30 +1243,36 @@ function renderProyeccion(){
   document.getElementById('proj-sub').textContent=`${res.length} meses con el plan bola de nieve`;
 
   // Banner ahorro
+  const mIdxSig=mIdx+1>11?0:mIdx+1;
+  const anioSig=mIdx>=11?ultimo.anio+1:ultimo.anio;
   document.getElementById('proj-ahorro-banner').innerHTML=`
     <div class="ahorro-fase" style="margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <div style="width:36px;height:36px;border-radius:12px;background:var(--purple-dim);border:1px solid rgba(167,139,250,.3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">&#128176;</div>
         <div>
-          <div style="font-size:14px;font-weight:600;color:var(--purple)">Fase ahorro — desde ${mNL[mIdx==-1?0:mIdx+1>11?0:mIdx+1]||'Mar'} ${ultimo.anio+(mIdx>=11?1:0)}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px">Despues del ultimo pago, cada sol libre es tuyo</div>
+          <div style="font-size:14px;font-weight:600;color:var(--purple)">Fase ahorro — desde ${mNL[mIdxSig]} ${anioSig}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Libre de deudas en ${mNL[mIdx]} ${ultimo.anio}. Cada sol es tuyo.</div>
         </div>
       </div>
       <div class="ahorro-meta-row">
-        <span style="font-size:13px;color:var(--muted)">Disponible mensual</span>
+        <span style="font-size:13px;color:var(--muted)">Disponible mensual liberado</span>
         <span style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--purple)">${fmt(ahorroMes)}</span>
       </div>
       <div class="ahorro-meta-row">
-        <span style="font-size:13px;color:var(--muted)">Fondo emergencia (meta 3 meses)</span>
-        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--amber)">${fmt(D.gastos*3)} en 3 meses</span>
+        <span style="font-size:13px;color:var(--muted)">&#127981; Fondo emergencia (3 meses gastos)</span>
+        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--amber)">${fmt(D.gastos*3)} — en 4 meses</span>
       </div>
       <div class="ahorro-meta-row">
-        <span style="font-size:13px;color:var(--muted)">Ahorro libre mensual (sugerido)</span>
-        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--green)">${fmt(ahorroMes*0.5)} — 50% del disponible</span>
+        <span style="font-size:13px;color:var(--muted)">&#128200; Ahorro libre (50% sugerido)</span>
+        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--green)">${fmt(ahorroMes*0.5)}/mes</span>
+      </div>
+      <div class="ahorro-meta-row">
+        <span style="font-size:13px;color:var(--muted)">&#127919; Total ahorrado en 12 meses</span>
+        <span style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--purple)">${fmt(ahorroMes*0.5*12)}</span>
       </div>
       <div class="ahorro-meta-row" style="border:none">
-        <span style="font-size:13px;color:var(--muted)">Ahorro en 12 meses</span>
-        <span style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--purple)">${fmt(ahorroMes*0.5*12)}</span>
+        <span style="font-size:13px;color:var(--muted)">&#127968; Casa nueva — fondo inicial sugerido</span>
+        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--blue)">${fmt(ahorroMes*0.3*24)} en 24 meses (30%)</span>
       </div>
     </div>`;
 
@@ -1241,11 +1369,38 @@ function registrar(){
   const cat=document.getElementById('inp-cat').value;
   if(!monto||monto<=0||isNaN(monto)){alert('Monto invalido');return}
   if(!desc){alert('Escribe una descripcion');return}
-  gastos.unshift({id:Date.now(),monto:parseFloat(monto.toFixed(2)),desc,cat,fecha:todayStr()});
+
+  // Verificar límites antes de registrar
+  const limD=LIM_DIARIO[cat];
+  const presupM=PRESUP[cat];
+  const hoy=todayStr();
+  const pActReg=periodoActual();
+  const gastosP=gastosDePeriodo(pActReg);
+  
+  let advertencias=[];
+  if(limD){
+    const yaHoy=gastosP.filter(g=>g.fecha===hoy&&g.cat===cat).reduce((a,g)=>a+g.monto,0);
+    if(yaHoy+monto>limD){
+      advertencias.push('Limite diario '+NOM[cat]+': S/'+limD+'/dia. Ya gastaste S/'+yaHoy.toFixed(0)+' hoy. Con esto sumas S/'+(yaHoy+monto).toFixed(0)+'.');
+    }
+  }
+  if(presupM>0){
+    const yaM=gastosP.filter(g=>g.cat===cat).reduce((a,g)=>a+g.monto,0);
+    if(yaM+monto>presupM){
+      advertencias.push('Presupuesto mensual '+NOM[cat]+': S/'+presupM+'. Ya gastaste S/'+yaM.toFixed(0)+'. Con esto superas el limite.');
+    }
+  }
+
+  if(advertencias.length>0){
+    const msg='ADVERTENCIA:\n\n'+advertencias.join('\n\n')+'\n\nContinuar de todas formas?';
+    if(!confirm(msg)) return;
+  }
+
+  gastos.unshift({id:Date.now(),monto:parseFloat(monto.toFixed(2)),desc,cat,fecha:hoy});
   saveGastos();
   document.getElementById('inp-monto').value='';
   document.getElementById('inp-desc').value='';
-  showToast('Gasto registrado: '+fmt(monto));
+  showToast(advertencias.length>0?'⚠️ Gasto registrado (sobre el límite)':'Gasto registrado: '+fmt(monto));
   goTabNombre('inicio');
 }
 
@@ -1260,11 +1415,45 @@ function confirmarLimpiar(){
   gastos=[];saveGastos();renderHistorial();renderInicio();
 }
 
+function resetSoloGastos(){
+  if(!confirm('Borrar todos los gastos registrados? La configuracion de deudas se mantiene.'))return;
+  gastos=[];
+  saveGastos();
+  try{localStorage.removeItem(HKEY);}catch(e){}
+  showToast('Gastos borrados correctamente');
+  renderInicio();
+  if(document.getElementById('s-historial').classList.contains('active'))renderHistorial();
+}
+
+function resetTotal(){
+  if(!confirm('RESET TOTAL: se borraran TODOS los gastos, historial y configuracion. La app volvera a valores por defecto. Esta accion no se puede deshacer.'))return;
+  if(!confirm('Confirmas que quieres borrar absolutamente todo?'))return;
+  gastos=[];
+  D={...DEFAULTS};
+  try{
+    localStorage.removeItem(GKEY);
+    localStorage.removeItem(DKEY);
+    localStorage.removeItem(HKEY);
+  }catch(e){}
+  saveGastos();
+  saveDeudas();
+  showToast('Reset completo. App como nueva.');
+  renderInicio();
+}
+
 function modoActual(){
   const a=limaDateObj(),anio=a.getFullYear(),mes=a.getMonth(),dia=a.getDate();
   if(anio<2026||anio===2026&&mes<3) return 'plan';
   if(anio===2026&&mes===3&&dia<25) return 'supervivencia';
   return 'plan';
+}
+function esMesDificil(){
+  const a=limaDateObj(),anio=a.getFullYear(),mes=a.getMonth();
+  return anio===2026&&mes===4; // Mayo 2026: mes ajustado sin extra
+}
+function esGratificacion(){
+  const a=limaDateObj(),anio=a.getFullYear(),mes=a.getMonth();
+  return (mes===6&&anio===2026)||(mes===11&&anio===2026);
 }
 function renderInicio(){
   const modo=modoActual();
@@ -1316,9 +1505,19 @@ function renderInicio(){
     document.getElementById('m-disp').textContent=fmt(disp);
     document.getElementById('m-disp').className='m-val '+(disp<200?'r':disp<500?'a':'g');
     let ah='';
-    if(totalMes>presup)ah='<div class="alert alert-danger"><div style="font-size:16px">&#9888;</div><div class="alert-text" style="color:var(--red)">Superaste el presupuesto mensual de '+fmt(presup)+'.</div></div>';
-    else if(totalHoy>limD)ah='<div class="alert alert-warn"><div style="font-size:16px">&#9889;</div><div class="alert-text" style="color:var(--amber)">Superaste el limite diario de S/'+limD+'.</div></div>';
-    else if(pct<30&&gastos.length>0)ah='<div class="alert alert-ok"><div style="font-size:16px">&#10003;</div><div class="alert-text" style="color:var(--green)">Vas muy bien este mes.</div></div>';
+    if(esMesDificil()){
+      ah+='<div class="alert alert-warn" style="margin-bottom:8px"><div style="font-size:16px">&#127968;</div><div class="alert-text" style="color:var(--amber)"><strong>Mayo — mes ajustado</strong><br>Solo minimos este mes. Sin extra a IO.<br>&#127874; Celebracion papas: S/70 tu parte · &#127958; Vac sencillas Lima: S/150<br>&#128197; Viaje papas Huancayo postergado a Julio (con gratificacion).</div></div>';
+    }
+    if(esGratificacion()){
+      const esJul=limaDateObj().getMonth()===6;
+      const txt=esJul
+        ?'&#127873; <strong>Gratificacion Julio +S/4,200</strong><br>Distribucion: S/800 viaje papas · S/400 vac agosto · S/70 celebracion · Resto liquida IO y ataca OH.'
+        :'&#127873; <strong>Gratificacion Diciembre +S/4,200</strong><br>Distribucion: S/1,000 regalos · S/400 vac noviembre · Resto ataca prestamo.';
+      ah+='<div class="alert" style="background:var(--blue-dim);border-color:rgba(91,143,255,.25);margin-bottom:8px"><div style="font-size:16px">&#127881;</div><div class="alert-text" style="color:var(--blue)">'+txt+'</div></div>';
+    }
+    if(totalMes>presup)ah+='<div class="alert alert-danger"><div style="font-size:16px">&#9888;</div><div class="alert-text" style="color:var(--red)">Superaste el presupuesto mensual de '+fmt(presup)+'.</div></div>';
+    else if(totalHoy>limD)ah+='<div class="alert alert-warn"><div style="font-size:16px">&#9889;</div><div class="alert-text" style="color:var(--amber)">Superaste el limite diario de S/'+limD+'.</div></div>';
+    else if(pct<30&&gastos.length>0&&!esMesDificil())ah+='<div class="alert alert-ok"><div style="font-size:16px">&#10003;</div><div class="alert-text" style="color:var(--green)">Vas muy bien este mes.</div></div>';
     document.getElementById('alertas-box').innerHTML=ah;
     const por={};
     const pRI=periodoActual();
@@ -1346,25 +1545,94 @@ function renderInicio(){
   ).join(''):'<div class="empty"><div class="empty-icon">&#128184;</div><div class="empty-text">Aun no hay gastos. Toca &quot;+ Gasto&quot;.</div></div>';
 }
 
+let vistaHist='periodo'; // 'periodo' | 'todo'
+
+function setVistaHist(vista){
+  vistaHist=vista;
+  const btnP=document.getElementById('toggle-periodo');
+  const btnT=document.getElementById('toggle-todo');
+  if(vista==='periodo'){
+    btnP.style.background='var(--text)';btnP.style.color='var(--bg)';btnP.style.fontWeight='600';
+    btnT.style.background='transparent';btnT.style.color='var(--muted)';btnT.style.fontWeight='500';
+  } else {
+    btnT.style.background='var(--text)';btnT.style.color='var(--bg)';btnT.style.fontWeight='600';
+    btnP.style.background='transparent';btnP.style.color='var(--muted)';btnP.style.fontWeight='500';
+  }
+  renderHistorial();
+}
+
 function renderHistorial(){
   const filtro=document.getElementById('filtro-cat').value;
   const pHist=periodoActual();
-  const gastosPH=gastosDePeriodo(pHist);
-  const lista=filtro?gastosPH.filter(g=>g.cat===filtro):gastosPH;
+
+  // Select source based on toggle
+  let fuente, labelVista;
+  if(vistaHist==='periodo'){
+    fuente=gastosDePeriodo(pHist);
+    labelVista=`Mostrando: periodo ${pHist.label}`;
+  } else {
+    fuente=[...gastos].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    labelVista=`Mostrando: todo el historial (${gastos.length} registros desde el inicio)`;
+  }
+
+  const lista=filtro?fuente.filter(g=>g.cat===filtro):fuente;
   const total=lista.reduce((a,g)=>a+g.monto,0);
-  const dias=new Set(lista.map(g=>g.fecha)).size||1;
+  const diasU=new Set(lista.map(g=>g.fecha)).size||1;
+
+  document.getElementById('hist-vista-label').textContent=labelVista;
   document.getElementById('stat-n').textContent=lista.length;
   document.getElementById('stat-t').textContent=fmtS(total);
-  document.getElementById('stat-d').textContent=fmtS(total/dias);
+  document.getElementById('stat-d').textContent=vistaHist==='periodo'?fmtS(total/diasU):'—';
+
+  // Group by date when showing all history
+  if(vistaHist==='todo'&&lista.length>0){
+    const porFecha={};
+    lista.forEach(g=>{
+      if(!porFecha[g.fecha])porFecha[g.fecha]=[];
+      porFecha[g.fecha].push(g);
+    });
+    const fechas=Object.keys(porFecha).sort().reverse();
+    
+    let html='';
+    fechas.forEach(fecha=>{
+      const gsF=porFecha[fecha];
+      const totalF=gsF.reduce((a,g)=>a+g.monto,0);
+      const pF=periodoFinanciero(new Date(fecha+'T12:00:00'));
+      html+=`<div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px;margin-bottom:6px">
+          <div>
+            <span style="font-size:13px;font-weight:600;color:var(--text)">${fecha}</span>
+            <span style="font-size:10px;color:var(--muted);margin-left:8px">${pF.label}</span>
+          </div>
+          <span style="font-size:12px;font-weight:600;font-family:'DM Mono',monospace;color:var(--muted)">${fmt(totalF)}</span>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:4px 14px">
+          ${gsF.map(g=>`
+          <div class="gasto-row">
+            <div class="gasto-icon" style="background:${BGCAT[g.cat]||'#1c1c26'}">${EM[g.cat]||'📦'}</div>
+            <div class="gasto-info"><div class="gasto-desc">${g.desc}</div><div class="gasto-meta">${NOM[g.cat]||g.cat}</div></div>
+            <div style="display:flex;align-items:center;flex-shrink:0">
+              <span class="gasto-amount">${fmt(g.monto)}</span>
+              <button class="del-btn" onclick="eliminar(${g.id})">×</button>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    });
+    document.getElementById('lista-hist').innerHTML=html;
+    return;
+  }
+
+  // Periodo view: flat list
   document.getElementById('lista-hist').innerHTML=lista.length?lista.map(g=>`
     <div class="gasto-row">
-      <div class="gasto-icon" style="background:${BGCAT[g.cat]}">${EM[g.cat]}</div>
-      <div class="gasto-info"><div class="gasto-desc">${g.desc}</div><div class="gasto-meta">${NOM[g.cat]} · ${g.fecha}</div></div>
+      <div class="gasto-icon" style="background:${BGCAT[g.cat]||'#1c1c26'}">${EM[g.cat]||'📦'}</div>
+      <div class="gasto-info"><div class="gasto-desc">${g.desc}</div><div class="gasto-meta">${NOM[g.cat]||g.cat} · ${g.fecha}</div></div>
       <div style="display:flex;align-items:center;flex-shrink:0">
         <span class="gasto-amount">${fmt(g.monto)}</span>
         <button class="del-btn" onclick="eliminar(${g.id})">×</button>
       </div>
-    </div>`).join(''):'<div class="empty"><div class="empty-icon">🗂</div><div class="empty-text">Sin gastos para mostrar</div></div>';
+    </div>`).join(''):'<div class="empty"><div class="empty-icon">🗂</div><div class="empty-text">Sin gastos en este periodo</div></div>';
 }
 
 const D2=limaDateObj();
