@@ -189,17 +189,24 @@ select option{background:var(--bg3)}
 <!-- INICIO -->
 <div id="s-inicio" class="screen active">
   <div class="hero">
-    <div class="hero-label">Gastado este mes</div>
+    <div class="hero-label">Total desembolsado del ingreso</div>
     <div class="hero-amount" id="hero-total">S/ 0.00</div>
     <div class="hero-sub" id="hero-sub"></div>
     <div class="hero-bar"><div class="hero-bar-fill" id="hero-fill" style="width:0%"></div></div>
   </div>
   <div class="metrics">
-    <div class="metric"><div class="m-lbl">Hoy</div><div class="m-val b" id="m-hoy">S/ 0</div></div>
-    <div class="metric"><div class="m-lbl">Disponible</div><div class="m-val g" id="m-disp">S/ 2,019</div></div>
+    <div class="metric"><div class="m-lbl">Gastado hoy</div><div class="m-val b" id="m-hoy">S/ 0</div></div>
+    <div class="metric"><div class="m-lbl">Disponible real</div><div class="m-val g" id="m-disp">S/ 3,600</div></div>
   </div>
   <div id="alertas-box"></div>
   <div class="card"><div class="card-title">Categorias del mes</div><div id="cats-home"></div></div>
+  <div class="card" id="card-pagos-mes">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="card-title" style="margin-bottom:0">Pagos del mes</div>
+      <div id="pagos-badge"></div>
+    </div>
+    <div id="pagos-mes-lista"></div>
+  </div>
   <div class="card"><div class="card-title">Ultimos movimientos</div><div id="ultimos-home"></div></div>
 </div>
 
@@ -308,9 +315,9 @@ select option{background:var(--bg3)}
 
   <div class="card-title" style="padding:0 4px;margin-bottom:10px">Ingreso y gastos fijos</div>
   <div class="card" style="margin-bottom:16px">
-    <div class="input-row">
+    <div class="input-row" style="margin-bottom:10px">
       <div class="form-group input-small">
-        <label>Ingreso mensual</label>
+        <label>Ingreso mensual normal</label>
         <input type="number" id="e-ingreso" min="0" step="50">
       </div>
       <div class="form-group input-small">
@@ -318,6 +325,12 @@ select option{background:var(--bg3)}
         <input type="number" id="e-gastos" min="0" step="50">
       </div>
     </div>
+    <div class="form-group input-small" id="campo-ingreso-real" style="display:none">
+      <label style="color:var(--amber)">Ingreso real este periodo (si cobrastes menos)</label>
+      <input type="number" id="e-ingreso-real" min="0" step="50" placeholder="Ej: 3000">
+      <p style="font-size:11px;color:var(--muted);margin-top:4px">Usa esto si este mes recibiste menos de tu ingreso normal (ej: ya habias gastado S/600 antes del periodo).</p>
+    </div>
+    <button onclick="toggleIngresoReal()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline;padding:0;font-family:'DM Sans',sans-serif" id="btn-ingreso-real">+ Ajustar ingreso real de este periodo</button>
   </div>
 
   <div class="card-title" style="padding:0 4px;margin-bottom:10px">Deudas — actualizar cada corte</div>
@@ -743,6 +756,7 @@ function cargarHistoria(){
 
 const DEFAULTS={
   ingreso:3600,gastos:2019,
+  ingreso_mayo2026:3000, // Mayo 2026: ya se gastaron S/600 antes de empezar
   io:{saldo:2156.55,minimo:175.13},
   oh:{saldo:2173.00,minimo:212.51},
   ibk:{saldo:3485.00,minimo:490.00},
@@ -856,6 +870,22 @@ function proximoPago(){
     label:`${diasN[dow]} ${pagoDate.getDate()} ${mesesN[pagoDate.getMonth()]}`,
     hoy:diasRestantes===0
   };
+}
+
+// Ingreso real del periodo actual (considera ajuste de Mayo 2026)
+function toggleIngresoReal(){
+  const campo=document.getElementById('campo-ingreso-real');
+  const btn=document.getElementById('btn-ingreso-real');
+  const visible=campo.style.display!=='none';
+  campo.style.display=visible?'none':'block';
+  btn.textContent=visible?'+ Ajustar ingreso real de este periodo':'- Ocultar ajuste';
+}
+
+function ingresoRealPeriodo(){
+  const a=limaDateObj(),anio=a.getFullYear(),mes=a.getMonth();
+  // Mayo 2026: ingreso real es S/3,000 (ya se gastaron S/600)
+  if(anio===2026&&mes===4) return D.ingreso_mayo2026||3000;
+  return D.ingreso;
 }
 
 const TABS=['inicio','registrar','historial','dashboard','editar','plan','historia','sync'];
@@ -1080,6 +1110,16 @@ function importarJSON(){
 
 function cargarFormulario(){
   document.getElementById('e-ingreso').value=D.ingreso;
+  // Mostrar campo de ingreso real si este mes es ajustado
+  const esMayoAdj=(limaDateObj().getFullYear()===2026&&limaDateObj().getMonth()===4);
+  if(esMayoAdj){
+    const campo=document.getElementById('campo-ingreso-real');
+    if(campo){campo.style.display='block';}
+    const btn=document.getElementById('btn-ingreso-real');
+    if(btn){btn.textContent='- Ocultar ajuste';}
+    const inp=document.getElementById('e-ingreso-real');
+    if(inp){inp.value=D.ingreso_mayo2026||3000;}
+  }
   document.getElementById('e-gastos').value=D.gastos;
   document.getElementById('e-io-saldo').value=D.io.saldo;
   document.getElementById('e-io-minimo').value=D.io.minimo;
@@ -1103,6 +1143,7 @@ function guardarYRecalcular(){
   const g=v=>parseFloat(document.getElementById(v).value)||0;
   D={
     ingreso:g('e-ingreso')||3600,
+    ingreso_mayo2026:g('e-ingreso-real')||D.ingreso_mayo2026||3000,
     gastos:g('e-gastos')||2019,
     io:{saldo:g('e-io-saldo'),minimo:g('e-io-minimo')},
     oh:{saldo:g('e-oh-saldo'),minimo:g('e-oh-minimo')},
@@ -1467,13 +1508,15 @@ function renderInicio(){
   const dias=Math.ceil((cobro-ahora)/(864e5));
   if(modo==='supervivencia'){
     const saldo=300,limD=Math.max(1,Math.round(saldo/dias)),dispS=Math.max(0,saldo-totalMes),pctS=Math.min(100,Math.round(totalMes/saldo*100));
-    document.getElementById('hero-total').textContent=fmt(totalMes);
+    document.getElementById('hero-total').textContent=fmt(totalTodoGastado);
     const pActS=periodoActual();
     document.getElementById('hero-sub').textContent='Modo supervivencia \xb7 '+pActS.label+' \xb7 Cobro en '+dias+' dias';
     document.getElementById('hero-fill').style.width=pctS+'%';
     document.getElementById('hero-fill').style.background=pctS>=80?'var(--red)':pctS>=50?'var(--amber)':'var(--blue)';
-    document.getElementById('m-hoy').textContent=fmt(totalHoy);
-    document.getElementById('m-hoy').className='m-val '+(totalHoy>limD?'r':'b');
+    const totalHoyTodo=gastosP_todos.filter(g=>g.fecha===todayStr()).reduce((a,g)=>a+g.monto,0);
+    const totalHoyVariables=gastosVariables.filter(g=>g.fecha===todayStr()).reduce((a,g)=>a+g.monto,0);
+    document.getElementById('m-hoy').textContent=fmt(totalHoyTodo);
+    document.getElementById('m-hoy').className='m-val '+(totalHoyVariables>limD?'r':'b');
     document.getElementById('m-disp').textContent=fmt(dispS);
     document.getElementById('m-disp').className='m-val '+(dispS<80?'r':dispS<150?'a':'b');
     const advText=ppInfo.adelantado>0?` (${ppInfo.label})`:'';
@@ -1494,16 +1537,41 @@ function renderInicio(){
       '<div class="row"><span class="row-label">Limite diario sugerido</span><span class="row-val" style="color:var(--amber)">S/ '+limD+'</span></div>'+
       '<div class="row" style="border:none"><span class="row-label" style="color:var(--green)">El plan arranca el 25 de Abril</span><span class="row-val" style="color:var(--green)">&#128197;</span></div>';
   } else {
-    const presup=D.gastos,disp=Math.max(0,presup-totalMes),pct=Math.min(100,Math.round(totalMes/presup*100)),limD=Math.round(presup/30);
+    // Separar gastos: pagos fijos vs gastos variables del hogar
+const CATS_PAGOS_FIJOS=new Set(['deudas','seguros','colegio','suscripciones','servicios','viaje','ahorro_meta']);
+const gastosP_todos=gastosDePeriodo(pModo);
+const gastosVariables=gastosP_todos.filter(g=>!CATS_PAGOS_FIJOS.has(g.cat));
+const gastosDeudas=gastosP_todos.filter(g=>g.cat==='deudas');
+const totalVariables=gastosVariables.reduce((a,g)=>a+g.monto,0);
+const totalDeudas=gastosDeudas.reduce((a,g)=>a+g.monto,0);
+const totalTodoGastado=gastosP_todos.reduce((a,g)=>a+g.monto,0);
+
+// Disponible real = Ingreso - todo lo que ya salió (deudas + gastos del hogar)
+const ingreso=ingresoRealPeriodo(); // S/3,000 Mayo 2026, S/3,600 resto
+const dispReal=Math.max(0,ingreso-totalTodoGastado);
+const dispPct=Math.min(100,Math.round(totalTodoGastado/ingreso*100));
+
+// Para la barra de progreso del héroe: solo gastos variables del hogar vs presupuesto del hogar
+const presupHogar=D.gastos-((D.io.minimo||0)+(D.oh.minimo||0)+(D.ibk.minimo||0)+(D.prest.minimo||0));
+const presup=presupHogar;
+const disp=dispReal; // disponible real
+const pct=dispPct;   // % del ingreso ya gastado
+const limD=Math.round(presupHogar/30);
     document.getElementById('hero-total').textContent=fmt(totalMes);
     const pAct=periodoActual();
-    document.getElementById('hero-sub').textContent='Periodo: '+pAct.label+' \xb7 Presupuesto: '+fmt(presup);
+    const esMayoAjustadoHero=(limaDateObj().getFullYear()===2026&&limaDateObj().getMonth()===4);
+    const subTxt=esMayoAjustadoHero
+      ?'Ingreso disponible: S/'+ingreso+' (S/600 ya gastados antes) · '+pAct.label
+      :'Del ingreso S/'+ingreso+' · Periodo: '+pAct.label;
+    document.getElementById('hero-sub').textContent=subTxt;
     document.getElementById('hero-fill').style.width=pct+'%';
-    document.getElementById('hero-fill').style.background=pct>=100?'var(--red)':pct>=80?'var(--amber)':'var(--green)';
-    document.getElementById('m-hoy').textContent=fmt(totalHoy);
-    document.getElementById('m-hoy').className='m-val '+(totalHoy>limD?'r':'b');
-    document.getElementById('m-disp').textContent=fmt(disp);
-    document.getElementById('m-disp').className='m-val '+(disp<200?'r':disp<500?'a':'g');
+    document.getElementById('hero-fill').style.background=pct>=95?'var(--red)':pct>=80?'var(--amber)':'var(--green)';
+    const totalHoyTodo=gastosP_todos.filter(g=>g.fecha===todayStr()).reduce((a,g)=>a+g.monto,0);
+    const totalHoyVariables=gastosVariables.filter(g=>g.fecha===todayStr()).reduce((a,g)=>a+g.monto,0);
+    document.getElementById('m-hoy').textContent=fmt(totalHoyTodo);
+    document.getElementById('m-hoy').className='m-val '+(totalHoyVariables>limD?'r':'b');
+    document.getElementById('m-disp').textContent=fmt(dispReal);
+    document.getElementById('m-disp').className='m-val '+(dispReal<200?'r':dispReal<500?'a':'g');
     let ah='';
     if(esMesDificil()){
       ah+='<div class="alert alert-warn" style="margin-bottom:8px"><div style="font-size:16px">&#127968;</div><div class="alert-text" style="color:var(--amber)"><strong>Mayo — mes ajustado</strong><br>Solo minimos este mes. Sin extra a IO.<br>&#127874; Celebracion papas: S/70 tu parte · &#127958; Vac sencillas Lima: S/150<br>&#128197; Viaje papas Huancayo postergado a Julio (con gratificacion).</div></div>';
@@ -1521,8 +1589,9 @@ function renderInicio(){
     document.getElementById('alertas-box').innerHTML=ah;
     const por={};
     const pRI=periodoActual();
-    const gastosP=gastosDePeriodo(pRI);
-    gastosP.forEach(g=>{por[g.cat]=(por[g.cat]||0)+g.monto;});
+    // Solo gastos variables para las barras de categorías del hogar
+    const gastosP_var=gastosDePeriodo(pRI).filter(g=>!CATS_PAGOS_FIJOS.has(g.cat));
+    gastosP_var.forEach(g=>{por[g.cat]=(por[g.cat]||0)+g.monto;});
     const cats=Object.keys(PRESUP).filter(c=>(por[c]||0)>0);
     document.getElementById('cats-home').innerHTML=cats.length?cats.map(cat=>{
       const g=por[cat]||0,p=PRESUP[cat],pct2=Math.min(100,Math.round(g/p*100)),cls=pct2>=100?'pdanger':pct2>=80?'pwarn':'pok';
@@ -1531,14 +1600,70 @@ function renderInicio(){
     const totalMin=D.io.minimo+D.oh.minimo+D.ibk.minimo+D.prest.minimo;
     const ppRec=proximoPago();
     const advRec=ppRec.adelantado>0?`<span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--amber-dim);color:var(--amber);margin-left:6px">adelantado ${ppRec.adelantado}d por feriado</span>`:'';
+    
+    // Detectar qué pagos de deudas ya se hicieron este periodo
+    const pagosHechos=gastosDePeriodo(periodoActual()).filter(g=>g.cat==='deudas');
+    const totalPagadoDeudas=pagosHechos.reduce((a,g)=>a+g.monto,0);
+    const minimosTotales=D.io.minimo+D.oh.minimo+D.ibk.minimo+D.prest.minimo;
+    const pagosCompletos=totalPagadoDeudas>=minimosTotales*0.9; // 90% margen
+    
+    // Verificar pagos individuales aproximados
+    const chk=(min)=>pagosHechos.some(g=>Math.abs(g.monto-min)<20)?'<span style="color:var(--green)">&#10003; Pagado</span>':'<span style="color:var(--red)">&#10007; Pendiente</span>';
+    
     document.getElementById('recordatorio-minimos').innerHTML=
       `<div class="row"><span class="row-label" style="color:var(--green);font-weight:600">Dia de pago ${ppRec.hoy?'&#128197; HOY!':ppRec.label} ${advRec}</span><span class="row-val" style="color:var(--green)">${ppRec.diasRestantes===0?'HOY':ppRec.diasRestantes+'d'}</span></div>`+
-      '<div class="row"><span class="row-label">IO Tarjeta (+ extra)</span><span class="row-val" style="color:var(--blue)">S/ '+D.io.minimo+'</span></div>'+
-      '<div class="row"><span class="row-label">OH Tarjeta</span><span class="row-val">S/ '+D.oh.minimo+'</span></div>'+
-      '<div class="row"><span class="row-label">IBK Acces</span><span class="row-val">S/ '+D.ibk.minimo+'</span></div>'+
-      '<div class="row"><span class="row-label">Prestamo Personal</span><span class="row-val">S/ '+D.prest.minimo+'</span></div>'+
-      '<div class="row" style="border:none"><span class="row-label" style="color:var(--green);font-weight:600">Extra a IO Tarjeta</span><span class="row-val" style="color:var(--green)">+ S/ '+Math.max(0,D.ingreso-D.gastos-totalMin)+'</span></div>';
+      `<div class="row"><span class="row-label">IO Tarjeta — S/ ${D.io.minimo}</span><span class="row-val">${chk(D.io.minimo)}</span></div>`+
+      `<div class="row"><span class="row-label">OH Tarjeta — S/ ${D.oh.minimo}</span><span class="row-val">${chk(D.oh.minimo)}</span></div>`+
+      `<div class="row"><span class="row-label">IBK Acces — S/ ${D.ibk.minimo}</span><span class="row-val">${chk(D.ibk.minimo)}</span></div>`+
+      `<div class="row"><span class="row-label">Prestamo — S/ ${D.prest.minimo}</span><span class="row-val">${chk(D.prest.minimo)}</span></div>`+
+      `<div class="row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px;border-bottom:none">`+
+        `<span class="row-label" style="color:${pagosCompletos?'var(--green)':'var(--amber)'};font-weight:600">`+
+        `${pagosCompletos?'&#10003; Todos los minimos pagados':'Minimos pendientes: S/'+(minimosTotales-totalPagadoDeudas).toFixed(0)}`+
+        `</span>`+
+        `<span class="row-val" style="font-family:'DM Mono',monospace;font-size:12px">S/${totalPagadoDeudas.toFixed(0)} / S/${minimosTotales.toFixed(0)}</span>`+
+      `</div>`;
   }
+  // ── Pagos del mes (deudas y fijos) ──────────────────────
+  const pagosMes=gastosDePeriodo(pModo).filter(g=>CATS_PAGOS_FIJOS.has(g.cat));
+  const pagosDeudaMes=gastosDePeriodo(pModo).filter(g=>g.cat==='deudas');
+  const totalPagadoMes=pagosDeudaMes.reduce((a,g)=>a+g.monto,0);
+  const minTot=D.io.minimo+D.oh.minimo+D.ibk.minimo+D.prest.minimo;
+  const todosPagados=totalPagadoMes>=minTot*0.9;
+  
+  const pagoBadge=document.getElementById('pagos-badge');
+  if(pagoBadge){
+    pagoBadge.innerHTML=todosPagados
+      ?'<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--green-dim);color:var(--green)">&#10003; Al dia</span>'
+      :'<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--amber-dim);color:var(--amber)">Pendientes</span>';
+  }
+  
+  const checkPago=(min,nombre)=>{
+    const encontrado=pagosDeudaMes.find(g=>Math.abs(g.monto-min)<20);
+    const color=encontrado?'var(--green)':'var(--red)';
+    const icon=encontrado?'&#10003;':'&#10007;';
+    const fecha=encontrado?' · '+encontrado.fecha:'';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div><span style="font-size:13px;font-weight:500">${nombre}</span><span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${fecha}</span></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--muted)">S/${min.toFixed(0)}</span>
+        <span style="font-size:16px;color:${color}">${icon}</span>
+      </div>
+    </div>`;
+  };
+  
+  const listaPagos=document.getElementById('pagos-mes-lista');
+  if(listaPagos){
+    listaPagos.innerHTML=
+      checkPago(D.io.minimo,'IO Tarjeta')+
+      checkPago(D.oh.minimo,'OH Tarjeta')+
+      checkPago(D.ibk.minimo,'IBK Acces')+
+      checkPago(D.prest.minimo,'Prestamo Personal')+
+      `<div style="display:flex;justify-content:space-between;padding:8px 0 0">
+        <span style="font-size:12px;color:var(--muted)">Total pagado</span>
+        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${todosPagados?'var(--green)':'var(--amber)'}">S/${totalPagadoMes.toFixed(0)} / S/${minTot.toFixed(0)}</span>
+      </div>`;
+  }
+
   const ul=gastos.slice(0,5);
   document.getElementById('ultimos-home').innerHTML=ul.length?ul.map(g=>
     '<div class="gasto-row"><div class="gasto-icon" style="background:'+BGCAT[g.cat]+'">'+EM[g.cat]+'</div><div class="gasto-info"><div class="gasto-desc">'+g.desc+'</div><div class="gasto-meta">'+NOM[g.cat]+' \xb7 '+g.fecha+'</div></div><span class="gasto-amount">'+fmt(g.monto)+'</span></div>'
