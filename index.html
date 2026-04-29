@@ -882,9 +882,12 @@ function toggleIngresoReal(){
 }
 
 function ingresoRealPeriodo(){
-  const a=limaDateObj(),anio=a.getFullYear(),mes=a.getMonth();
-  // Mayo 2026: ingreso real es S/3,000 (ya se gastaron S/600)
-  if(anio===2026&&mes===4) return D.ingreso_mayo2026||3000;
+  const p=periodoActual();
+  // Periodo 2026-04 = periodo financiero Mayo (empieza 24 Abr por dia habil)
+  if(p.key==='2026-04') return D.ingreso_mayo2026||3000;
+  // Meses con gratificacion: sumar grat al ingreso
+  if(p.key==='2026-06') return D.ingreso+(D.grat_jul||4200);
+  if(p.key==='2026-11') return D.ingreso+(D.grat_dic||4200);
   return D.ingreso;
 }
 
@@ -1110,8 +1113,8 @@ function importarJSON(){
 
 function cargarFormulario(){
   document.getElementById('e-ingreso').value=D.ingreso;
-  // Mostrar campo de ingreso real si este mes es ajustado
-  const esMayoAdj=(limaDateObj().getFullYear()===2026&&limaDateObj().getMonth()===4);
+  // Mostrar campo de ingreso real si este periodo es ajustado
+  const esMayoAdj=esMesDificil();
   if(esMayoAdj){
     const campo=document.getElementById('campo-ingreso-real');
     if(campo){campo.style.display='block';}
@@ -1489,12 +1492,14 @@ function modoActual(){
   return 'plan';
 }
 function esMesDificil(){
-  const a=limaDateObj(),anio=a.getFullYear(),mes=a.getMonth();
-  return anio===2026&&mes===4; // Mayo 2026: mes ajustado sin extra
+  // El periodo Mayo 2026 empieza el 24 Abril (dia habil del 25 Abr que cae sabado)
+  // Verificamos por el KEY del periodo financiero actual
+  const p=periodoActual();
+  return p.key==='2026-04'; // Periodo que empieza en Abril 2026 = periodo de Mayo
 }
 function esGratificacion(){
-  const a=limaDateObj(),anio=a.getFullYear(),mes=a.getMonth();
-  return (mes===6&&anio===2026)||(mes===11&&anio===2026);
+  const p=periodoActual();
+  return p.key==='2026-06'||p.key==='2026-11';
 }
 function renderInicio(){
   const modo=modoActual();
@@ -1515,7 +1520,8 @@ function renderInicio(){
     document.getElementById('hero-fill').style.background=pctS>=80?'var(--red)':pctS>=50?'var(--amber)':'var(--blue)';
     const totalHoyTodo=gastosP_todos.filter(g=>g.fecha===todayStr()).reduce((a,g)=>a+g.monto,0);
     const totalHoyVariables=gastosVariables.filter(g=>g.fecha===todayStr()).reduce((a,g)=>a+g.monto,0);
-    document.getElementById('m-hoy').textContent=fmt(totalHoyTodo);
+    // Gastado hoy = solo gastos variables (no deudas que son pagos planificados)
+    document.getElementById('m-hoy').textContent=fmt(totalHoyVariables);
     document.getElementById('m-hoy').className='m-val '+(totalHoyVariables>limD?'r':'b');
     document.getElementById('m-disp').textContent=fmt(dispS);
     document.getElementById('m-disp').className='m-val '+(dispS<80?'r':dispS<150?'a':'b');
@@ -1559,7 +1565,7 @@ const pct=dispPct;   // % del ingreso ya gastado
 const limD=Math.round(presupHogar/30);
     document.getElementById('hero-total').textContent=fmt(totalMes);
     const pAct=periodoActual();
-    const esMayoAjustadoHero=(limaDateObj().getFullYear()===2026&&limaDateObj().getMonth()===4);
+    const esMayoAjustadoHero=esMesDificil();
     const subTxt=esMayoAjustadoHero
       ?'Ingreso disponible: S/'+ingreso+' (S/600 ya gastados antes) · '+pAct.label
       :'Del ingreso S/'+ingreso+' · Periodo: '+pAct.label;
@@ -1568,24 +1574,24 @@ const limD=Math.round(presupHogar/30);
     document.getElementById('hero-fill').style.background=pct>=95?'var(--red)':pct>=80?'var(--amber)':'var(--green)';
     const totalHoyTodo=gastosP_todos.filter(g=>g.fecha===todayStr()).reduce((a,g)=>a+g.monto,0);
     const totalHoyVariables=gastosVariables.filter(g=>g.fecha===todayStr()).reduce((a,g)=>a+g.monto,0);
-    document.getElementById('m-hoy').textContent=fmt(totalHoyTodo);
+    // Gastado hoy = solo gastos variables (no deudas que son pagos planificados)
+    document.getElementById('m-hoy').textContent=fmt(totalHoyVariables);
     document.getElementById('m-hoy').className='m-val '+(totalHoyVariables>limD?'r':'b');
     document.getElementById('m-disp').textContent=fmt(dispReal);
     document.getElementById('m-disp').className='m-val '+(dispReal<200?'r':dispReal<500?'a':'g');
     let ah='';
     if(esMesDificil()){
-      ah+='<div class="alert alert-warn" style="margin-bottom:8px"><div style="font-size:16px">&#127968;</div><div class="alert-text" style="color:var(--amber)"><strong>Mayo — mes ajustado</strong><br>Solo minimos este mes. Sin extra a IO.<br>&#127874; Celebracion papas: S/70 tu parte · &#127958; Vac sencillas Lima: S/150<br>&#128197; Viaje papas Huancayo postergado a Julio (con gratificacion).</div></div>';
+      ah+='<div class="alert alert-warn" style="margin-bottom:8px"><div style="font-size:16px">&#127968;</div><div class="alert-text" style="color:var(--amber)"><strong>Mayo — mes ajustado</strong><br>Ingreso disponible: S/3,000 (S/600 ya gastados antes del periodo).<br>&#127874; Celebracion papas: S/70 · &#127958; Vac Lima: S/150 · &#128197; Viaje papas postergado a Julio.</div></div>';
     }
     if(esGratificacion()){
-      const esJul=limaDateObj().getMonth()===6;
-      const txt=esJul
-        ?'&#127873; <strong>Gratificacion Julio +S/4,200</strong><br>Distribucion: S/800 viaje papas · S/400 vac agosto · S/70 celebracion · Resto liquida IO y ataca OH.'
-        :'&#127873; <strong>Gratificacion Diciembre +S/4,200</strong><br>Distribucion: S/1,000 regalos · S/400 vac noviembre · Resto ataca prestamo.';
+      const esJul=periodoActual().key==='2026-06';
+      const txt=esJul?'&#127873; <strong>Gratificacion Julio +S/4,200</strong><br>Distribucion: S/800 viaje papas · S/400 vac agosto · S/70 celebracion · Resto liquida IO y ataca OH.':'&#127873; <strong>Gratificacion Diciembre +S/4,200</strong><br>Distribucion: S/1,000 regalos · S/400 vac noviembre · Resto ataca prestamo.';
       ah+='<div class="alert" style="background:var(--blue-dim);border-color:rgba(91,143,255,.25);margin-bottom:8px"><div style="font-size:16px">&#127881;</div><div class="alert-text" style="color:var(--blue)">'+txt+'</div></div>';
     }
-    if(totalMes>presup)ah+='<div class="alert alert-danger"><div style="font-size:16px">&#9888;</div><div class="alert-text" style="color:var(--red)">Superaste el presupuesto mensual de '+fmt(presup)+'.</div></div>';
-    else if(totalHoy>limD)ah+='<div class="alert alert-warn"><div style="font-size:16px">&#9889;</div><div class="alert-text" style="color:var(--amber)">Superaste el limite diario de S/'+limD+'.</div></div>';
-    else if(pct<30&&gastos.length>0&&!esMesDificil())ah+='<div class="alert alert-ok"><div style="font-size:16px">&#10003;</div><div class="alert-text" style="color:var(--green)">Vas muy bien este mes.</div></div>';
+    if(dispReal<100) ah+='<div class="alert alert-danger"><div style="font-size:16px">&#9888;</div><div class="alert-text" style="color:var(--red)">Saldo critico: te quedan S/'+dispReal.toFixed(0)+'. Evita todo gasto no esencial.</div></div>';
+    else if(dispReal<400) ah+='<div class="alert alert-warn"><div style="font-size:16px">&#9889;</div><div class="alert-text" style="color:var(--amber)">Quedan S/'+dispReal.toFixed(0)+' del ingreso. Cuidado con los gastos.</div></div>';
+    else if(totalHoyVariables>limD) ah+='<div class="alert alert-warn"><div style="font-size:16px">&#9889;</div><div class="alert-text" style="color:var(--amber)">Superaste el limite diario en gastos variables (S/'+limD+'/dia).</div></div>';
+    else if(dispReal>1000&&gastosP_todos.length>0&&!esMesDificil()) ah+='<div class="alert alert-ok"><div style="font-size:16px">&#10003;</div><div class="alert-text" style="color:var(--green)">Vas bien. Disponible: S/'+dispReal.toFixed(0)+'.</div></div>';
     document.getElementById('alertas-box').innerHTML=ah;
     const por={};
     const pRI=periodoActual();
