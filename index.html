@@ -149,6 +149,19 @@ select option{background:var(--bg3)}
 .ahorro-meta-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(167,139,250,.15)}
 .ahorro-meta-row:last-child{border-bottom:none}
 .fase-libre{background:var(--green-dim);border:1px solid rgba(34,214,142,.2);border-radius:16px;padding:16px;margin-bottom:10px}
+.chk-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;transition:opacity .15s}
+.chk-item:last-child{border-bottom:none}
+.chk-item.done{opacity:.55}
+.chk-box{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.chk-box.checked{background:var(--green);border-color:var(--green)}
+.chk-check{color:#000;font-size:13px;font-weight:700;display:none}
+.chk-box.checked .chk-check{display:block}
+.chk-info{flex:1}
+.chk-name{font-size:14px;font-weight:500}
+.chk-name.done{text-decoration:line-through;color:var(--muted)}
+.chk-amount{font-size:13px;font-family:'DM Mono',monospace;font-weight:600;flex-shrink:0}
+.chk-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;margin-top:2px;display:inline-block}
+.chk-progress{background:var(--bg3);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
 .section-sep{display:flex;align-items:center;gap:10px;margin:16px 0}
 .section-sep span{font-size:11px;color:var(--muted);white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 .section-sep::before,.section-sep::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -180,6 +193,7 @@ select option{background:var(--bg3)}
   <button class="tab" onclick="goTab('dashboard',this)">Dashboard</button>
   <button class="tab" onclick="goTab('editar',this)">Actualizar</button>
   <button class="tab" onclick="goTab('plan',this)">Proyeccion</button>
+  <button class="tab" onclick="goTab('checklist',this)">&#9989; Pagos</button>
   <button class="tab" onclick="goTab('historia',this)">Historia</button>
   <button class="tab" onclick="goTab('sync',this)">Sincronizar</button>
 </div>
@@ -200,10 +214,13 @@ select option{background:var(--bg3)}
   </div>
   <div id="alertas-box"></div>
   <div class="card"><div class="card-title">Categorias del mes</div><div id="cats-home"></div></div>
-  <div class="card" id="card-pagos-mes">
+  <div class="card" id="card-pagos-mes" onclick="goTabNombre('checklist')" style="cursor:pointer">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div class="card-title" style="margin-bottom:0">Pagos del mes</div>
-      <div id="pagos-badge"></div>
+      <div class="card-title" style="margin-bottom:0">Pagos del periodo</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div id="pagos-badge"></div>
+        <span style="font-size:12px;color:var(--muted)">Ver &#8250;</span>
+      </div>
     </div>
     <div id="pagos-mes-lista"></div>
   </div>
@@ -505,6 +522,29 @@ select option{background:var(--bg3)}
 
 </div>
 
+<!-- CHECKLIST -->
+<div id="s-checklist" class="screen">
+  <div class="hero" style="margin-bottom:12px">
+    <div class="hero-label">Pagos del periodo</div>
+    <div style="font-size:18px;font-weight:600;margin-top:4px" id="chk-titulo">Cargando...</div>
+    <div class="hero-sub" id="chk-subtitulo"></div>
+  </div>
+  <div id="chk-progreso"></div>
+  <div style="margin-bottom:10px">
+    <div style="font-size:11px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:1px;padding:0 4px;margin-bottom:8px">Deudas — pagar primero</div>
+    <div class="card" style="padding:8px 14px" id="chk-deudas"></div>
+  </div>
+  <div style="margin-bottom:10px">
+    <div style="font-size:11px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:1px;padding:0 4px;margin-bottom:8px">Servicios y colegio</div>
+    <div class="card" style="padding:8px 14px" id="chk-servicios"></div>
+  </div>
+  <div style="margin-bottom:10px">
+    <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:0 4px;margin-bottom:8px">Suscripciones</div>
+    <div class="card" style="padding:8px 14px" id="chk-suscripciones"></div>
+  </div>
+  <button class="btn btn-ghost" onclick="resetChecklist()" style="margin-top:4px">Reiniciar checklist del periodo</button>
+</div>
+
 <!-- HISTORIA -->
 <div id="s-historia" class="screen">
   <div class="hero" style="margin-bottom:12px">
@@ -609,7 +649,7 @@ select option{background:var(--bg3)}
   <button class="nav-btn" onclick="goTabNav('registrar',this)"><span class="nav-icon">＋</span><span class="nav-label">Gasto</span></button>
   <button class="nav-btn" onclick="goTabNav('dashboard',this)"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></button>
   <button class="nav-btn" onclick="goTabNav('editar',this)"><span class="nav-icon">✏️</span><span class="nav-label">Actualizar</span></button>
-  <button class="nav-btn" onclick="goTabNav('historia',this)"><span class="nav-icon">📅</span><span class="nav-label">Historia</span></button>
+  <button class="nav-btn" onclick="goTabNav('checklist',this)"><span class="nav-icon">✅</span><span class="nav-label">Pagos</span></button>
 </nav>
 
 <script>
@@ -657,6 +697,48 @@ const BGCAT={alimentacion:'#0d3d27',transporte:'#0d1f3d',servicios:'#3d2a08',col
 const GKEY='mipf_gastos_v3';
 const DKEY='mipf_deudas_v3';
 const HKEY='mipf_historia_v1'; // historial por periodo
+const CKEY='mipf_checklist_v1'; // checklist pagos fijos por periodo
+
+// Pagos fijos del mes (se generan dinámicamente con los datos de D)
+function getPagosFijos(){
+  return [
+    {id:'io',    cat:'deudas',  nombre:'IO Tarjeta — mínimo',     monto:D.io.minimo,    tipo:'deuda',    urgencia:'alta'},
+    {id:'oh',    cat:'deudas',  nombre:'OH Tarjeta — cuota Jul',   monto:D.oh.cuota_jul||386.09, tipo:'deuda', urgencia:'alta'},
+    {id:'ibk',   cat:'deudas',  nombre:'IBK Acces — mínimo',       monto:D.ibk.minimo,   tipo:'deuda',    urgencia:'alta'},
+    {id:'prest', cat:'deudas',  nombre:'Préstamo Personal',         monto:D.prest.minimo, tipo:'deuda',    urgencia:'alta'},
+    {id:'colegio',cat:'colegio',nombre:'Colegio — mensualidad',    monto:600,            tipo:'servicio', urgencia:'alta'},
+    {id:'segleo', cat:'seguros',nombre:'Seguro Leo',               monto:101,            tipo:'servicio', urgencia:'media'},
+    {id:'segma',  cat:'seguros',nombre:'Seguro Ma',                monto:135,            tipo:'servicio', urgencia:'media'},
+    {id:'luz',    cat:'servicios',nombre:'Luz',                    monto:210,            tipo:'servicio', urgencia:'media'},
+    {id:'agua',   cat:'servicios',nombre:'Agua',                   monto:90,             tipo:'servicio', urgencia:'media'},
+    {id:'internet',cat:'servicios',nombre:'Internet',              monto:69,             tipo:'servicio', urgencia:'media'},
+    {id:'cel',    cat:'servicios',nombre:'Celular',                monto:49,             tipo:'servicio', urgencia:'media'},
+    {id:'gas',    cat:'servicios',nombre:'Gas',                    monto:25,             tipo:'servicio', urgencia:'baja'},
+    {id:'ia',     cat:'suscripciones',nombre:'Herramientas IA',   monto:80,             tipo:'suscripcion',urgencia:'baja'},
+    {id:'google', cat:'suscripciones',nombre:'Google',            monto:15,             tipo:'suscripcion',urgencia:'baja'},
+    {id:'suscs',  cat:'suscripciones',nombre:'Suscripciones',     monto:45,             tipo:'suscripcion',urgencia:'baja'},
+  ];
+}
+
+function getChecklistKey(){
+  return CKEY+'_'+periodoActual().key;
+}
+
+function loadChecklist(){
+  try{return JSON.parse(localStorage.getItem(getChecklistKey())||'{}')}catch(e){return {};}
+}
+
+function saveChecklist(data){
+  try{localStorage.setItem(getChecklistKey(),JSON.stringify(data))}catch(e){}
+}
+
+function togglePago(id){
+  const data=loadChecklist();
+  data[id]=!data[id];
+  saveChecklist(data);
+  renderChecklist();
+  renderInicio();
+}
 
 let gastos=[];
 try{gastos=JSON.parse(localStorage.getItem(GKEY)||'[]')}catch(e){}
@@ -756,19 +838,19 @@ function cargarHistoria(){
 
 const DEFAULTS={
   ingreso:3600,gastos:2019,
-  ingreso_mayo2026:3000, // Mayo 2026: ya se gastaron S/600 antes de empezar
-  io:{saldo:2156.55,minimo:175.13},
-  oh:{saldo:2173.00,minimo:212.51},
-  ibk:{saldo:3485.00,minimo:490.00},
+  ingreso_mayo2026:3000,
+  ingreso_jun2026:2800,  // Neto real: 3600 - 100(comida) - 100(dolares) - 112(OH ya pagado)
+  io:{saldo:2139.73,minimo:177.68},
+  oh:{saldo:1960.59,minimo:0,refinanciada:true,cuota_jun:0,cuota_jul:386.09}, // Jun ya pagado
+  ibk:{saldo:4680.70,minimo:533.81},
   prest:{saldo:10000,minimo:489},
   grat_jul:4200,grat_dic:4200,
-  // Gastos extraordinarios que salen de las gratificaciones
-  viaje_papas:800,      // Viaje papas Huancayo - Julio 2026
-  vac_ago:400,          // Vacaciones Agosto - cubierto con grat Julio
-  celebracion_papas:70, // Cena aniversario Lima - Mayo 2026 (tu parte)
-  regalos:1000,         // Regalos Navidad/Año nuevo - Diciembre
-  vac_nov:400,          // Vacaciones Noviembre - cubierto con grat Dic
-  vac_mayo:150          // Vacaciones Mayo - plan sencillo Lima
+  viaje_papas:800,
+  vac_ago:400,
+  celebracion_papas:70,
+  regalos:1000,
+  vac_nov:400,
+  vac_mayo:150
 };
 
 let D={...DEFAULTS};
@@ -883,15 +965,14 @@ function toggleIngresoReal(){
 
 function ingresoRealPeriodo(){
   const p=periodoActual();
-  // Periodo 2026-04 = periodo financiero Mayo (empieza 24 Abr por dia habil)
   if(p.key==='2026-04') return D.ingreso_mayo2026||3000;
-  // Meses con gratificacion: sumar grat al ingreso
+  if(p.key==='2026-05') return D.ingreso_jun2026||2800;
   if(p.key==='2026-06') return D.ingreso+(D.grat_jul||4200);
   if(p.key==='2026-11') return D.ingreso+(D.grat_dic||4200);
   return D.ingreso;
 }
 
-const TABS=['inicio','registrar','historial','dashboard','editar','plan','historia','sync'];
+const TABS=['inicio','registrar','historial','dashboard','editar','plan','checklist','historia','sync'];
 function goTab(id,tabBtn){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -920,6 +1001,70 @@ function onTabEnter(id){
   if(id==='sync')renderSync();
   if(id==='dashboard')renderDashboard();
   if(id==='historia')renderHistoria();
+  if(id==='checklist')renderChecklist();
+}
+
+function resetChecklist(){
+  if(!confirm('Reiniciar todos los pagos del periodo como pendientes?'))return;
+  try{localStorage.removeItem(getChecklistKey());}catch(e){}
+  renderChecklist();
+  showToast('Checklist reiniciado');
+}
+
+function renderChecklist(){
+  const p=periodoActual();
+  const pagos=getPagosFijos();
+  const data=loadChecklist();
+  const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  
+  document.getElementById('chk-titulo').textContent='Periodo '+p.label;
+  
+  const totalPagos=pagos.length;
+  const hechos=pagos.filter(pg=>data[pg.id]).length;
+  const totalMonto=pagos.reduce((a,pg)=>a+pg.monto,0);
+  const montoPagado=pagos.filter(pg=>data[pg.id]).reduce((a,pg)=>a+pg.monto,0);
+  const pct=Math.round(hechos/totalPagos*100);
+  
+  document.getElementById('chk-subtitulo').textContent=hechos+' de '+totalPagos+' pagos realizados · S/'+montoPagado.toFixed(0)+' de S/'+totalMonto.toFixed(0);
+  
+  const colorPct=pct===100?'var(--green)':pct>=60?'var(--amber)':'var(--red)';
+  document.getElementById('chk-progreso').innerHTML=`
+    <div class="chk-progress" style="margin-bottom:12px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:${colorPct}">${pct===100?'&#10003; Todos pagados':''+hechos+'/'+totalPagos+' completados'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Pendiente: S/${(totalMonto-montoPagado).toFixed(0)}</div>
+      </div>
+      <div style="width:80px;height:80px;position:relative">
+        <svg viewBox="0 0 36 36" style="transform:rotate(-90deg);width:80px;height:80px">
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--bg4)" stroke-width="3"/>
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="${colorPct}" stroke-width="3"
+            stroke-dasharray="${pct} ${100-pct}" stroke-linecap="round"/>
+        </svg>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:15px;font-weight:700;color:${colorPct}">${pct}%</div>
+      </div>
+    </div>`;
+
+  const renderGrupo=(ids,containerId)=>{
+    const grupo=pagos.filter(pg=>ids.includes(pg.tipo));
+    document.getElementById(containerId).innerHTML=grupo.map(pg=>{
+      const done=!!data[pg.id];
+      const urgColor=pg.urgencia==='alta'?'var(--red)':pg.urgencia==='media'?'var(--amber)':'var(--muted)';
+      return `<div class="chk-item${done?' done':''}" onclick="togglePago('${pg.id}')">
+        <div class="chk-box${done?' checked':''}"><span class="chk-check">&#10003;</span></div>
+        <div class="chk-info">
+          <div class="chk-name${done?' done':''}">${pg.nombre}</div>
+          <span class="chk-badge" style="background:${done?'var(--green-dim)':'var(--bg4)'};color:${done?'var(--green)':urgColor}">
+            ${done?'Pagado':pg.urgencia==='alta'?'Urgente':pg.urgencia==='media'?'Esta semana':'Cuando toque'}
+          </span>
+        </div>
+        <span class="chk-amount" style="color:${done?'var(--green)':'var(--text)'}">S/ ${pg.monto.toFixed(0)}</span>
+      </div>`;
+    }).join('');
+  };
+
+  renderGrupo(['deuda'],'chk-deudas');
+  renderGrupo(['servicio'],'chk-servicios');
+  renderGrupo(['suscripcion'],'chk-suscripciones');
 }
 
 function renderHistoria(){
@@ -1191,17 +1336,20 @@ function calcProyeccion(){
     return 0;
   };
   const mesConGastoExtra=(m,a)=>{
-    // Gastos que salen de las gratificaciones o del ingreso mensual
     let gasto=0;
-    // Julio 2026: viaje papas + vac agosto + celebracion
     if(m===6&&a===2026) gasto+=(D.viaje_papas||800)+(D.vac_ago||400)+(D.celebracion_papas||70);
-    // Diciembre: regalos + vac noviembre
     if(m===11&&a===2026) gasto+=(D.regalos||1000)+(D.vac_nov||400);
-    // Mayo: vacaciones sencillas Lima (cada año)
     if(m===4) gasto+=(D.vac_mayo||150);
-    // Agosto 2027+: vacaciones agosto (ya no cubierto por grat)
     if(m===7&&a>=2027) gasto+=400;
     return gasto;
+  };
+  // OH refinanciada: Junio(mes 4 en calendario)=S/112, Julio-Dic(5-11)=S/386.09
+  const pagoOHMes=(m,a)=>{
+    // Junio (mes 4) ya pagado el 27 Mayo - cuota_jun=0
+    if(m===4&&a===2026) return D.oh.cuota_jun||0;
+    // Julio (mes 5) a Diciembre (mes 11): S/386.09
+    if(m>=5&&m<=11&&a===2026) return D.oh.cuota_jul||386.09;
+    return 0;
   };
 
   for(let i=0;i<36;i++){
@@ -1228,14 +1376,23 @@ function calcProyeccion(){
     const pagos={io:0,oh:0,ibk:0,prest:0};
     const liquidadas=[];
 
-    ['io','oh','ibk','prest'].forEach(d=>{
+    // OH: pago fijo por refinanciacion (no entra en bola de nieve)
+    const ohP=pagoOHMes(mes,anio);
+    if(saldos.oh>0&&ohP>0){
+      pagos.oh=parseFloat(Math.min(ohP,saldos.oh).toFixed(2));
+      saldos.oh=parseFloat(Math.max(0,saldos.oh-pagos.oh).toFixed(2));
+      if(saldos.oh<=0) liquidadas.push('OH');
+    }
+
+    // IO, IBK, Prest: bola de nieve normal
+    ['io','ibk','prest'].forEach(d=>{
       if(saldos[d]<=0){pagos[d]=0;return;}
       const pago=d===objetivo?Math.min(minimos[d]+extraMes,saldos[d]):Math.min(minimos[d],saldos[d]);
       pagos[d]=parseFloat(pago.toFixed(2));
       saldos[d]=parseFloat(Math.max(0,saldos[d]-pago).toFixed(2));
     });
 
-    const orden=['io','oh','ibk','prest'];
+    const orden=['io','ibk','prest']; // OH fuera de la bola de nieve
     const sig=orden[orden.indexOf(objetivo)+1];
     if(saldos[objetivo]<=0&&sig){
       extra+=minimos[objetivo];
@@ -1636,38 +1793,43 @@ const limD=Math.round(presupHogar/30);
   const minTot=D.io.minimo+D.oh.minimo+D.ibk.minimo+D.prest.minimo;
   const todosPagados=totalPagadoMes>=minTot*0.9;
   
+
+  
+  // Checklist summary on inicio
+  const chkData=loadChecklist();
+  const allPagos=getPagosFijos();
+  const chkHechos=allPagos.filter(pg=>chkData[pg.id]).length;
+  const chkTotal=allPagos.length;
+  const chkMonto=allPagos.filter(pg=>chkData[pg.id]).reduce((a,pg)=>a+pg.monto,0);
+  const chkMontoTotal=allPagos.reduce((a,pg)=>a+pg.monto,0);
+  const chkPct=Math.round(chkHechos/chkTotal*100);
+  const chkColor=chkPct===100?'var(--green)':chkPct>=60?'var(--amber)':'var(--red)';
+
   const pagoBadge=document.getElementById('pagos-badge');
   if(pagoBadge){
-    pagoBadge.innerHTML=todosPagados
-      ?'<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--green-dim);color:var(--green)">&#10003; Al dia</span>'
-      :'<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--amber-dim);color:var(--amber)">Pendientes</span>';
+    pagoBadge.innerHTML=chkPct===100
+      ?'<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--green-dim);color:var(--green)">&#10003; Todo pagado</span>'
+      :'<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--amber-dim);color:var(--amber)">'+chkHechos+'/'+chkTotal+' pagados</span>';
   }
-  
-  const checkPago=(min,nombre)=>{
-    const encontrado=pagosDeudaMes.find(g=>Math.abs(g.monto-min)<20);
-    const color=encontrado?'var(--green)':'var(--red)';
-    const icon=encontrado?'&#10003;':'&#10007;';
-    const fecha=encontrado?' · '+encontrado.fecha:'';
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div><span style="font-size:13px;font-weight:500">${nombre}</span><span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${fecha}</span></div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--muted)">S/${min.toFixed(0)}</span>
-        <span style="font-size:16px;color:${color}">${icon}</span>
-      </div>
-    </div>`;
-  };
-  
+
   const listaPagos=document.getElementById('pagos-mes-lista');
   if(listaPagos){
-    listaPagos.innerHTML=
-      checkPago(D.io.minimo,'IO Tarjeta')+
-      checkPago(D.oh.minimo,'OH Tarjeta')+
-      checkPago(D.ibk.minimo,'IBK Acces')+
-      checkPago(D.prest.minimo,'Prestamo Personal')+
-      `<div style="display:flex;justify-content:space-between;padding:8px 0 0">
-        <span style="font-size:12px;color:var(--muted)">Total pagado</span>
-        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${todosPagados?'var(--green)':'var(--amber)'}">S/${totalPagadoMes.toFixed(0)} / S/${minTot.toFixed(0)}</span>
+    // Solo mostrar deudas en el resumen del inicio
+    const deudasPagos=allPagos.filter(pg=>pg.tipo==='deuda');
+    listaPagos.innerHTML=deudasPagos.map(pg=>{
+      const hecho=!!chkData[pg.id];
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;font-weight:500;color:${hecho?'var(--muted)':'var(--text)'};${hecho?'text-decoration:line-through':''}">${pg.nombre}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--muted)">S/${pg.monto.toFixed(0)}</span>
+          <span style="font-size:18px;color:${hecho?'var(--green)':'var(--red)'}">${hecho?'&#10003;':'&#10007;'}</span>
+        </div>
       </div>`;
+    }).join('')+
+    `<div style="display:flex;justify-content:space-between;padding:8px 0 0;border-top:1px solid var(--border);margin-top:4px">
+      <span style="font-size:12px;color:var(--muted)">Progreso total (${chkTotal} pagos)</span>
+      <span style="font-size:13px;font-weight:600;color:${chkColor}">S/${chkMonto.toFixed(0)} / S/${chkMontoTotal.toFixed(0)}</span>
+    </div>`;
   }
 
   const ul=gastos.slice(0,5);
